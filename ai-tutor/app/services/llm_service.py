@@ -18,6 +18,12 @@ Adding a new provider in the future requires only:
 2. Updating the routing logic in LLMService._call_provider().
 
 No other layer needs to change.
+
+Phase 3 change
+--------------
+generate() accepts an optional original_question_text parameter.
+When supplied, it is forwarded to validate_tutor_response() so the
+validator can reject a practice question identical to the original.
 """
 
 import time
@@ -48,6 +54,7 @@ class LLMService:
         self,
         system_prompt: str,
         user_prompt: str,
+        original_question_text: str = "",
     ) -> TutorResponse:
         """
         Call the configured LLM provider and return a validated TutorResponse.
@@ -58,6 +65,10 @@ class LLMService:
             The tutor system instructions (built by the prompt layer).
         user_prompt:
             The formatted learner context (built by the prompt layer).
+        original_question_text:
+            Optional. The original question text from TutorContext.
+            When supplied, the validator will reject a practice question
+            that is exactly identical to the original.
 
         Returns
         -------
@@ -81,7 +92,10 @@ class LLMService:
                 response = self._call_provider(system_prompt, user_prompt)
                 elapsed = time.monotonic() - t0
 
-                validate_tutor_response(response)
+                validate_tutor_response(
+                    response,
+                    original_question_text=original_question_text,
+                )
 
                 logger.info(
                     "LLM response validated | attempt=%d elapsed=%.2fs",

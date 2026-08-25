@@ -1,6 +1,6 @@
 # LearnTrace AI Tutor
 
-> **Backend-only module.** Phase 2: Gemini LLM integration with mock mode.
+> **Backend-only module.** Phase 3: Tutoring quality improvements.
 
 The AI Tutor is a focused backend service within the LearnTrace platform. It receives structured assessment context from the LearnTrace backend and returns tutoring content that helps a learner understand their mistake.
 
@@ -15,9 +15,9 @@ LearnTrace trusted context
         ↓
       AI Tutor
         ↓
-  Explain the mistake
+  Explain why the answer is wrong
   Explain the concept simply
-  Give a relevant example
+  Give one useful example
   Generate one similar practice question
 ```
 
@@ -57,7 +57,7 @@ ai-tutor/
 │   ├── services/
 │   │   ├── tutor_service.py            # TutorService — orchestration layer
 │   │   ├── llm_service.py              # LLMService — provider-agnostic interface
-│   │   ├── response_validator.py       # Semantic validation of LLM output
+│   │   ├── response_validator.py       # Semantic + quality validation of LLM output
 │   │   └── providers/
 │   │       └── gemini.py               # Gemini SDK implementation
 │   └── core/
@@ -66,8 +66,9 @@ ai-tutor/
 │       └── logging.py                  # Logging setup
 ├── tests/
 │   ├── test_health.py                  # Health endpoint tests
-│   ├── test_tutor.py                   # Phase 1 endpoint tests (all still pass)
-│   └── test_llm_service.py             # Phase 2 LLM integration tests
+│   ├── test_tutor.py                   # Phase 1 endpoint tests
+│   ├── test_llm_service.py             # Phase 2 LLM integration tests
+│   └── test_prompt_quality.py          # Phase 3 tutoring quality tests
 ├── .env.example
 ├── .gitignore
 ├── pytest.ini
@@ -86,7 +87,7 @@ ai-tutor/
 | Pydantic v2 | Request/response validation |
 | pydantic-settings | Environment-based configuration |
 | Uvicorn | ASGI server |
-| google-genai | Official Gemini SDK (Phase 2) |
+| google-genai | Official Gemini SDK |
 | pytest | Test runner |
 | httpx | HTTP client (used by FastAPI TestClient) |
 
@@ -144,10 +145,59 @@ pytest
 Set `TUTOR_MOCK_MODE=true` (the default) to run without calling the Gemini API.
 
 - All tests pass in mock mode — no API key required.
-- The mock response uses the **same schema** as a real Gemini response.
+- The mock response is fully context-aware: it adapts to the supplied competency, learner answer, and correct answer. No subject-specific content is hard-coded.
+- The mock uses the same `TutorResponse` schema as the real LLM path.
 - Safe for local development and CI/CD.
 
 Set `TUTOR_MOCK_MODE=false` to enable real Gemini calls. You must also set `GEMINI_API_KEY`.
+
+---
+
+## Tutoring Quality (Phase 3)
+
+### Misconception-focused explanations
+
+The system prompt instructs Gemini to explain **why** the learner's specific answer is wrong — not merely restate the correct answer. The model is directed to identify the likely misconception or reasoning error and clarify the distinction.
+
+### Learner-friendly tone
+
+The system prompt explicitly requires warm, encouraging, teacher-like language. Phrases like "you were wrong" are prohibited. The model is instructed to write as if sitting beside the learner.
+
+### Concrete examples
+
+The worked example must be directly relevant to the concept or misconception in the original question — not an unrelated scenario.
+
+### Practice question safeguards
+
+- The practice question must be meaningfully different from the original — not a copy or paraphrase.
+- Exactly four distinct options are required.
+- Exactly one correct option is required.
+- An explanation of the correct option is required.
+- The original question text is passed into the validator, which rejects any practice question that is exactly identical to the original.
+
+### Response quality validation
+
+Beyond Pydantic's schema checks, the validator enforces:
+
+| Field | Minimum length |
+|---|---|
+| `explanation` | 80 characters |
+| `simple_explanation` | 60 characters |
+| `worked_example` | 80 characters |
+| `practice_question.explanation` | 40 characters |
+
+Additional structural checks:
+- Exactly 4 options
+- All options non-empty
+- No duplicate options
+- `correct_option` must match one of the listed options exactly
+- Practice question must not be identical to the original question (after normalisation)
+
+If validation fails, one retry is attempted before HTTP 502 is returned.
+
+### Context-aware mock mode
+
+The mock response dynamically adapts to whatever `TutorContext` is supplied. All four fields reference the actual `competency.name`, `learner_answer`, and `correct_answer` from the incoming request. This makes mock mode representative across any subject domain.
 
 ---
 
@@ -159,20 +209,20 @@ LearnTrace Backend
    Tutor API  (POST /api/v1/tutor/explain)
        ↓
  TutorService
-  ├─ Mock mode → deterministic response
+  ├─ Mock mode → context-aware deterministic response
   └─ Real mode ↓
-          LLMService        (provider-agnostic)
+          LLMService        (provider-agnostic; passes original question text)
                ↓
           GeminiProvider    (google-genai SDK)
                ↓
           Gemini LLM
                ↓
-          Structured JSON response (validated)
+          Structured JSON response
+               ↓
+          ResponseValidator (schema + min-length + identical-question check)
                ↓
           TutorResponse
 ```
-
-The Gemini provider sits entirely behind the `LLMService` boundary. The API layer and schemas never depend on the Gemini SDK directly. Swapping providers requires only a new file under `app/services/providers/`.
 
 ---
 
@@ -218,7 +268,7 @@ Generate a tutoring response for a learner's incorrect answer.
 }
 ```
 
-> `detected_gap` is optional.
+> `detected_gap` is optional. When absent, the prompt includes a fallback statement directing the model to address the distinction between the learner's answer and the correct answer.
 
 **Response — `TutorResponse`**
 
@@ -241,21 +291,8 @@ Generate a tutoring response for a learner's incorrect answer.
 | HTTP | Cause |
 |---|---|
 | 422 | Invalid request body (Pydantic validation) |
-| 502 | Gemini API failure or malformed LLM response |
+| 502 | Gemini API failure, malformed response, or validation failure after retries |
 | 503 | LLM not configured (missing API key in real mode) |
-
----
-
-## Structured Output
-
-The Gemini provider uses `response_schema=TutorResponse` in the Gemini API config. This requests structured JSON output matching the `TutorResponse` Pydantic model directly — no manual JSON parsing from free-form text.
-
-After receiving the response, the service additionally validates:
-- All text fields are non-empty.
-- Practice question has exactly four distinct options.
-- `correct_option` matches one of the four options exactly.
-
-If validation fails, one retry is attempted. If both fail, HTTP 502 is returned.
 
 ---
 
@@ -280,7 +317,7 @@ If validation fails, one retry is attempted. If both fail, HTTP 502 is returned.
 
 ---
 
-## Testing Without Gemini
+## Testing
 
 All tests run in mock mode by default. No Gemini key is needed.
 
@@ -288,7 +325,12 @@ All tests run in mock mode by default. No Gemini key is needed.
 pytest
 ```
 
-The Phase 2 test file (`tests/test_llm_service.py`) mocks the Gemini provider at the service boundary so no network calls are made.
+| Test file | Coverage |
+|---|---|
+| `test_health.py` | Health endpoint |
+| `test_tutor.py` | API contract, request validation, response schema |
+| `test_llm_service.py` | LLM path delegation, retry logic, error mapping, prompt injection |
+| `test_prompt_quality.py` | Prompt construction, min-length validation, identical-question check, mock context-awareness |
 
 ---
 
@@ -314,6 +356,8 @@ The Phase 2 test file (`tests/test_llm_service.py`) mocks the Gemini provider at
 
 **Safe failure** — LLM failures return clean HTTP errors, not raw exceptions.
 
+**Quality over features** — Each tutoring output field has explicit instructions and validation floors.
+
 ---
 
 ## Roadmap
@@ -326,24 +370,13 @@ FastAPI setup, API versioning, Pydantic schemas, TutorService, configuration, lo
 
 Gemini integration, prompt layer, LLMService abstraction, structured output, response validation, mock mode, error handling, Phase 2 tests.
 
-### Phase 3 — Prompt Tuning & Reliability
+### Phase 3 — Tutoring Quality ✅ Complete
 
-- Iterate prompt quality for real learner data.
-- LLM timeout configuration and controlled retries.
-- Malformed response fallback strategy.
-- Prompt-injection hardening review.
-- Improved observability.
+Misconception-focused explanations, learner-friendly tone, concrete examples, practice-question safeguards (not-identical check), response quality validation (minimum lengths), context-aware mock mode, Phase 3 tests.
 
 ### Phase 4 — LearnTrace Integration
 
 Connect the Tutor API with the real LearnTrace backend and consume actual trusted assessment context from the mastery and competency systems.
-
-### Optional Later Features
-
-- Multilingual explanations.
-- Contextual follow-up questions within a session.
-- Additional tutoring strategies.
-- Tutor analytics.
 
 ---
 

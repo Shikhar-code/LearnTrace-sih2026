@@ -5,8 +5,8 @@ Responsibility
 --------------
 Accept a validated TutorContext and return a TutorResponse.
 
-Pipeline (Phase 2)
-------------------
+Pipeline (Phase 2 / Phase 3)
+-----------------------------
     TutorService.explain()
         ↓
     If TUTOR_MOCK_MODE=true  →  _generate_mock()   (no LLM, deterministic)
@@ -21,6 +21,14 @@ Pipeline (Phase 2)
                                 Validated TutorResponse
 
 The API route and TutorResponse schema are unchanged from Phase 1.
+
+Phase 3 changes
+---------------
+- _generate_with_llm() passes the original question text to LLMService
+  so the response validator can reject identical practice questions.
+- _generate_mock() is fully context-aware: all fields reference the
+  actual competency, learner answer, and correct answer from the context.
+  No subject-specific content is hard-coded.
 """
 
 from app.core.config import settings
@@ -82,6 +90,9 @@ class TutorService:
     def _generate_with_llm(self, context: TutorContext) -> TutorResponse:
         """
         Build prompts and call the LLM service to produce a real response.
+
+        The original question text is forwarded so the response validator
+        can reject a practice question that is identical to the original.
         """
         system_prompt = TUTOR_SYSTEM_PROMPT
         user_prompt = build_tutor_prompt(context)
@@ -92,15 +103,30 @@ class TutorService:
             context.question.id,
         )
 
-        return _llm_service.generate(system_prompt, user_prompt)
+        return _llm_service.generate(
+            system_prompt,
+            user_prompt,
+            original_question_text=context.question.text,
+        )
 
     def _generate_mock(self, context: TutorContext) -> TutorResponse:
         """
         Return a deterministic mock TutorResponse without calling any LLM.
 
-        - Safe for all tests and local development without a Gemini key.
-        - Uses the same TutorResponse schema as the real LLM path.
-        - Incorporates context fields so tests can verify contextual content.
+        Phase 3: fully context-aware — all fields are derived from the
+        supplied TutorContext rather than from hard-coded subject content.
+        This makes mock mode representative for any competency or subject.
+
+        Guarantees
+        ----------
+        - explanation references learner_answer and correct_answer.
+        - simple_explanation references competency.name.
+        - worked_example references competency.name and correct_answer.
+        - practice_question references competency.name and is structurally
+          distinct from the original question.
+        - All fields meet the response validator's minimum length floors.
+        - practice_question has exactly four distinct options with a valid
+          correct_option.
         """
         competency_name = context.competency.name
         correct_answer = context.correct_answer
@@ -108,49 +134,53 @@ class TutorService:
         gap_description = (
             context.detected_gap.description
             if context.detected_gap
-            else "a conceptual gap in this area"
+            else f"a conceptual confusion within {competency_name}"
         )
 
         return TutorResponse(
             explanation=(
-                f"You selected '{learner_answer}', but the correct answer is "
-                f"'{correct_answer}'. This question tests your understanding of "
-                f"**{competency_name}**. The issue appears to be {gap_description}. "
-                "Review the core definition and how it differs from related concepts."
+                f"You chose '{learner_answer}', but the correct answer is "
+                f"'{correct_answer}'. The distinction here matters for "
+                f"**{competency_name}**: {gap_description}. "
+                f"Understanding why '{learner_answer}' does not fit — and why "
+                f"'{correct_answer}' does — is the key insight this question is testing."
             ),
             simple_explanation=(
-                f"Think of **{competency_name}** this way: it is the specific subset "
-                "of the population that you can actually reach and list. "
-                "Your chosen answer describes something slightly different. "
-                "Keep this distinction in mind when you see similar questions."
+                f"In **{competency_name}**, it is important to be precise about "
+                f"definitions. The option '{correct_answer}' is correct because it "
+                f"captures the specific meaning the concept requires, while "
+                f"'{learner_answer}' describes something related but distinct. "
+                f"Keeping these definitions clear will help you answer similar "
+                f"questions confidently."
             ),
             worked_example=(
-                f"Worked example for **{competency_name}**: "
-                "Suppose a researcher wants to study university students in a city. "
-                "The *population* is all university students in that city. "
-                "The *sampling frame* is the actual list of students obtained from "
-                "university enrollment records — only those who are registered and "
-                "can be contacted. Notice how the sampling frame may exclude some "
-                "students (e.g., those enrolled but not yet in the records). "
-                "This distinction is what the question is testing."
+                f"Here is a concrete example to illustrate **{competency_name}**: "
+                f"Imagine a researcher designing a study. They encounter exactly the "
+                f"kind of distinction this question is testing — the difference between "
+                f"'{learner_answer}' and '{correct_answer}'. "
+                f"In practice, confusing these two leads to errors in study design or "
+                f"interpretation. Recognising which concept applies in context is a "
+                f"core skill in {competency_name}."
             ),
             practice_question=PracticeQuestion(
                 question=(
-                    "A researcher studies employed adults in a city by obtaining a "
-                    "list from the local employment office. What does this list represent?"
+                    f"In the context of {competency_name}, which of the following "
+                    f"statements about '{correct_answer}' is most accurate?"
                 ),
                 options=[
-                    "The target population",
-                    "The sampling frame",
-                    "The sample",
-                    "The census",
+                    f"It is the same concept as '{learner_answer}'",
+                    f"It is the correct term for this situation in {competency_name}",
+                    f"It applies only in advanced cases of {competency_name}",
+                    f"It is unrelated to {competency_name}",
                 ],
-                correct_option="The sampling frame",
+                correct_option=(
+                    f"It is the correct term for this situation in {competency_name}"
+                ),
                 explanation=(
-                    "The employment-office list is the **sampling frame** — the "
-                    "operational list from which the researcher will draw the sample. "
-                    "It represents the reachable subset of the broader population "
-                    "(all employed adults in the city)."
+                    f"In {competency_name}, '{correct_answer}' has a precise and "
+                    f"distinct meaning that sets it apart from '{learner_answer}'. "
+                    f"Choosing the right term in context is central to applying "
+                    f"the concept correctly."
                 ),
             ),
         )

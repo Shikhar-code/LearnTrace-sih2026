@@ -70,11 +70,27 @@ VALID_PAYLOAD = {
 
 
 def _make_valid_tutor_response() -> TutorResponse:
-    """Return a fully valid TutorResponse for use in mocks."""
+    """Return a fully valid TutorResponse for use in mocks.
+
+    Phase 3: field values meet the minimum-length floors enforced by
+    the response validator so this helper can be used in tests that
+    exercise the full validation path.
+    """
     return TutorResponse(
-        explanation="Your answer was incorrect because ...",
-        simple_explanation="Think of it simply as ...",
-        worked_example="For example, consider ...",
+        explanation=(
+            "Your answer was incorrect because the two concepts are fundamentally "
+            "different, and understanding this distinction is essential for "
+            "mastering the topic at hand."
+        ),
+        simple_explanation=(
+            "Think of it as the difference between the whole group you care about "
+            "and the specific reachable list you actually use to select from."
+        ),
+        worked_example=(
+            "For example, consider a researcher studying university students in a city. "
+            "The population is every student in the city, but the sampling frame is the "
+            "specific enrollment list from which they draw their actual sample."
+        ),
         practice_question=PracticeQuestion(
             question="Which of the following best describes a sampling frame?",
             options=[
@@ -84,7 +100,10 @@ def _make_valid_tutor_response() -> TutorResponse:
                 "A type of survey instrument",
             ],
             correct_option="A list of all population members reachable for a study",
-            explanation="The sampling frame is the operational list ...",
+            explanation=(
+                "The sampling frame is the operational list from which the researcher "
+                "draws their actual sample, distinct from the broader population."
+            ),
         ),
     )
 
@@ -215,15 +234,18 @@ def test_llm_service_retries_on_malformed_response() -> None:
 
 
 def test_validator_rejects_duplicate_options() -> None:
+    # Fields are substantive enough to pass min-length; structural flaw is
+    # the duplicate option — that is the assertion being tested here.
+    long_enough = "x" * 100
     response = TutorResponse(
-        explanation="ok",
-        simple_explanation="ok",
-        worked_example="ok",
+        explanation=long_enough,
+        simple_explanation=long_enough,
+        worked_example=long_enough,
         practice_question=PracticeQuestion(
-            question="q?",
+            question="Which statement best describes the concept?",
             options=["A", "A", "C", "D"],   # duplicate A
             correct_option="A",
-            explanation="ok",
+            explanation=long_enough,
         ),
     )
     with pytest.raises(LLMResponseError, match="duplicate"):
@@ -236,15 +258,16 @@ def test_validator_rejects_duplicate_options() -> None:
 
 
 def test_validator_rejects_invalid_correct_option() -> None:
+    long_enough = "x" * 100
     response = TutorResponse(
-        explanation="ok",
-        simple_explanation="ok",
-        worked_example="ok",
+        explanation=long_enough,
+        simple_explanation=long_enough,
+        worked_example=long_enough,
         practice_question=PracticeQuestion(
-            question="q?",
+            question="Which statement best describes the concept?",
             options=["A", "B", "C", "D"],
             correct_option="Z",   # not in options
-            explanation="ok",
+            explanation=long_enough,
         ),
     )
     with pytest.raises(LLMResponseError, match="correct_option"):
@@ -257,15 +280,16 @@ def test_validator_rejects_invalid_correct_option() -> None:
 
 
 def test_validator_rejects_too_few_options() -> None:
+    long_enough = "x" * 100
     response = TutorResponse(
-        explanation="ok",
-        simple_explanation="ok",
-        worked_example="ok",
+        explanation=long_enough,
+        simple_explanation=long_enough,
+        worked_example=long_enough,
         practice_question=PracticeQuestion(
-            question="q?",
+            question="Which statement best describes the concept?",
             options=["A", "B"],   # only 2, need 4
             correct_option="A",
-            explanation="ok",
+            explanation=long_enough,
         ),
     )
     with pytest.raises(LLMResponseError, match="exactly 4"):
@@ -273,15 +297,16 @@ def test_validator_rejects_too_few_options() -> None:
 
 
 def test_validator_rejects_too_many_options() -> None:
+    long_enough = "x" * 100
     response = TutorResponse(
-        explanation="ok",
-        simple_explanation="ok",
-        worked_example="ok",
+        explanation=long_enough,
+        simple_explanation=long_enough,
+        worked_example=long_enough,
         practice_question=PracticeQuestion(
-            question="q?",
+            question="Which statement best describes the concept?",
             options=["A", "B", "C", "D", "E"],   # 5 options
             correct_option="A",
-            explanation="ok",
+            explanation=long_enough,
         ),
     )
     with pytest.raises(LLMResponseError, match="exactly 4"):
