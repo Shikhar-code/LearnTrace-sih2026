@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------ #
     APP_NAME: str = "ai-tutor"
     APP_ENV: str = "development"
-    APP_VERSION: str = "0.1.0"
+    APP_VERSION: str = "0.2.0"
 
     # ------------------------------------------------------------------ #
     # API
@@ -25,9 +25,22 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     # ------------------------------------------------------------------ #
-    # LLM — placeholders for future phases; unused in Phase 1
+    # Tutor mode
     # ------------------------------------------------------------------ #
-    LLM_PROVIDER: str = ""
+    # When True the service returns a deterministic placeholder instead of
+    # calling the LLM.  Safe for tests and local development.
+    TUTOR_MOCK_MODE: bool = True
+
+    # ------------------------------------------------------------------ #
+    # Gemini — Phase 2 LLM provider
+    # ------------------------------------------------------------------ #
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+
+    # ------------------------------------------------------------------ #
+    # Legacy placeholders (kept for backwards compat; superseded above)
+    # ------------------------------------------------------------------ #
+    LLM_PROVIDER: str = "gemini"
     LLM_MODEL: str = ""
     LLM_API_KEY: str = ""
 

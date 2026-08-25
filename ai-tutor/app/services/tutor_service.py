@@ -5,31 +5,35 @@ Responsibility
 --------------
 Accept a validated TutorContext and return a TutorResponse.
 
-Phase 1 — Placeholder
-----------------------
-Returns a deterministic, hard-coded TutorResponse so that:
-  - the API contract is fully exercisable without an LLM,
-  - the service boundary is clearly established,
-  - tests can verify response shape without network I/O.
+Pipeline (Phase 2)
+------------------
+    TutorService.explain()
+        ↓
+    If TUTOR_MOCK_MODE=true  →  _generate_mock()   (no LLM, deterministic)
+    If TUTOR_MOCK_MODE=false →  _generate_with_llm()
+                                    ↓
+                                PromptService (build_tutor_prompt)
+                                    ↓
+                                LLMService.generate()
+                                    ↓
+                                GeminiProvider
+                                    ↓
+                                Validated TutorResponse
 
-Future phases
--------------
-Replace _generate_placeholder() with a call to PromptService → LLMService
-→ LLM Provider.  The route layer and TutorResponse schema remain unchanged.
-
-    TutorService
-        ↓
-    PromptService        (builds the prompt from TutorContext)
-        ↓
-    LLMService           (calls the chosen LLM provider)
-        ↓
-    LLM Provider         (OpenAI / Anthropic / Gemini / …)
+The API route and TutorResponse schema are unchanged from Phase 1.
 """
 
+from app.core.config import settings
+from app.core.exceptions import LLMMisconfiguredError, LLMProviderError, LLMResponseError
 from app.core.logging import get_logger
+from app.prompts.tutor import TUTOR_SYSTEM_PROMPT, build_tutor_prompt
 from app.schemas.tutor import PracticeQuestion, TutorContext, TutorResponse
+from app.services.llm_service import LLMService
 
 logger = get_logger(__name__)
+
+# Single LLMService instance — stateless, safe to share across requests.
+_llm_service = LLMService()
 
 
 class TutorService:
@@ -47,29 +51,56 @@ class TutorService:
         Returns
         -------
         TutorResponse
-            Structured tutoring output.  Phase 1 returns a placeholder.
+            Structured tutoring output.
+
+        Raises
+        ------
+        LLMMisconfiguredError
+            If real mode is requested but the LLM is not configured.
+        LLMProviderError
+            If the LLM provider call fails.
+        LLMResponseError
+            If the LLM returns an unrecoverable malformed response.
         """
         logger.debug(
-            "TutorService.explain called | competency=%s question=%s",
+            "TutorService.explain | mock=%s competency=%s question=%s",
+            settings.TUTOR_MOCK_MODE,
             context.competency.id,
             context.question.id,
         )
 
-        response = self._generate_placeholder(context)
+        if settings.TUTOR_MOCK_MODE:
+            logger.debug("Mock mode enabled — returning placeholder response.")
+            return self._generate_mock(context)
 
-        logger.debug("TutorService.explain returning placeholder response.")
-        return response
+        return self._generate_with_llm(context)
 
     # ------------------------------------------------------------------ #
     # Private helpers
     # ------------------------------------------------------------------ #
 
-    def _generate_placeholder(self, context: TutorContext) -> TutorResponse:
+    def _generate_with_llm(self, context: TutorContext) -> TutorResponse:
         """
-        Return a deterministic placeholder TutorResponse.
+        Build prompts and call the LLM service to produce a real response.
+        """
+        system_prompt = TUTOR_SYSTEM_PROMPT
+        user_prompt = build_tutor_prompt(context)
 
-        This method will be replaced in a future phase by a call to
-        PromptService and then LLMService.
+        logger.info(
+            "Calling LLM | competency=%s question=%s",
+            context.competency.id,
+            context.question.id,
+        )
+
+        return _llm_service.generate(system_prompt, user_prompt)
+
+    def _generate_mock(self, context: TutorContext) -> TutorResponse:
+        """
+        Return a deterministic mock TutorResponse without calling any LLM.
+
+        - Safe for all tests and local development without a Gemini key.
+        - Uses the same TutorResponse schema as the real LLM path.
+        - Incorporates context fields so tests can verify contextual content.
         """
         competency_name = context.competency.name
         correct_answer = context.correct_answer

@@ -1,0 +1,138 @@
+"""
+LLM Service — provider-agnostic abstraction layer.
+
+Position in the pipeline
+------------------------
+TutorService
+    ↓
+LLMService          ← this module
+    ↓
+GeminiProvider      (app/services/providers/gemini.py)
+
+LLMService accepts prepared prompts and returns a TutorResponse.
+It knows which provider to use from configuration but does not
+contain any Gemini-specific code itself.
+
+Adding a new provider in the future requires only:
+1. Implementing a new provider module under app/services/providers/.
+2. Updating the routing logic in LLMService._call_provider().
+
+No other layer needs to change.
+"""
+
+import time
+
+from app.core.config import settings
+from app.core.exceptions import LLMMisconfiguredError, LLMProviderError, LLMResponseError
+from app.core.logging import get_logger
+from app.schemas.tutor import TutorResponse
+from app.services.response_validator import validate_tutor_response
+
+logger = get_logger(__name__)
+
+# Maximum number of attempts when the LLM returns a malformed response.
+_MAX_RESPONSE_RETRIES = 2
+
+
+class LLMService:
+    """
+    Provider-agnostic LLM interface.
+
+    Handles:
+    - Provider selection and delegation.
+    - One controlled retry on malformed response.
+    - Response validation.
+    """
+
+    def generate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+    ) -> TutorResponse:
+        """
+        Call the configured LLM provider and return a validated TutorResponse.
+
+        Parameters
+        ----------
+        system_prompt:
+            The tutor system instructions (built by the prompt layer).
+        user_prompt:
+            The formatted learner context (built by the prompt layer).
+
+        Returns
+        -------
+        TutorResponse
+            Validated structured tutor output.
+
+        Raises
+        ------
+        LLMMisconfiguredError
+            If the provider cannot be initialised (missing key, etc.).
+        LLMProviderError
+            If the provider API call fails after retries.
+        LLMResponseError
+            If the provider returns an unrecoverable malformed response.
+        """
+        last_error: Exception | None = None
+
+        for attempt in range(1, _MAX_RESPONSE_RETRIES + 1):
+            try:
+                t0 = time.monotonic()
+                response = self._call_provider(system_prompt, user_prompt)
+                elapsed = time.monotonic() - t0
+
+                validate_tutor_response(response)
+
+                logger.info(
+                    "LLM response validated | attempt=%d elapsed=%.2fs",
+                    attempt,
+                    elapsed,
+                )
+                return response
+
+            except LLMResponseError as exc:
+                logger.warning(
+                    "LLM response validation failed (attempt %d/%d): %s",
+                    attempt,
+                    _MAX_RESPONSE_RETRIES,
+                    exc,
+                )
+                last_error = exc
+                # Only retry on malformed response, not on provider errors.
+                if attempt < _MAX_RESPONSE_RETRIES:
+                    continue
+                break
+
+            except (LLMProviderError, LLMMisconfiguredError):
+                # Do not retry provider/config errors — they won't self-heal.
+                raise
+
+        raise LLMResponseError(
+            f"LLM returned an invalid response after "
+            f"{_MAX_RESPONSE_RETRIES} attempts. Last error: {last_error}"
+        )
+
+    # ------------------------------------------------------------------ #
+    # Private helpers
+    # ------------------------------------------------------------------ #
+
+    def _call_provider(
+        self, system_prompt: str, user_prompt: str
+    ) -> TutorResponse:
+        """
+        Route the request to the appropriate provider.
+
+        Currently only Gemini is supported.  New providers can be added
+        here without changing any other layer.
+        """
+        provider_name = settings.LLM_PROVIDER.lower() or "gemini"
+
+        if provider_name == "gemini":
+            from app.services.providers.gemini import call_gemini
+
+            return call_gemini(system_prompt, user_prompt)
+
+        raise LLMMisconfiguredError(
+            f"Unknown LLM provider '{provider_name}'. "
+            "Set LLM_PROVIDER=gemini in your .env file."
+        )

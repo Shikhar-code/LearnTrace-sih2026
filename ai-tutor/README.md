@@ -1,6 +1,6 @@
 # LearnTrace AI Tutor
 
-> **Backend-only module.** No frontend, no database, no LLM (Phase 1).
+> **Backend-only module.** Phase 2: Gemini LLM integration with mock mode.
 
 The AI Tutor is a focused backend service within the LearnTrace platform. It receives structured assessment context from the LearnTrace backend and returns tutoring content that helps a learner understand their mistake.
 
@@ -45,21 +45,29 @@ These responsibilities belong to other LearnTrace components. The AI Tutor only 
 ```
 ai-tutor/
 ├── app/
-│   ├── main.py                  # FastAPI app, /health endpoint, lifespan
+│   ├── main.py                         # FastAPI app, /health, lifespan
 │   ├── api/
-│   │   ├── router.py            # Mounts all versioned routes at /api/v1
+│   │   ├── router.py                   # Mounts all versioned routes at /api/v1
 │   │   └── routes/
-│   │       └── tutor.py         # POST /api/v1/tutor/explain
+│   │       └── tutor.py                # POST /api/v1/tutor/explain
 │   ├── schemas/
-│   │   └── tutor.py             # TutorContext (request) + TutorResponse (response)
+│   │   └── tutor.py                    # TutorContext (request) + TutorResponse (response)
+│   ├── prompts/
+│   │   └── tutor.py                    # System prompt + build_tutor_prompt()
 │   ├── services/
-│   │   └── tutor_service.py     # TutorService — business logic layer
+│   │   ├── tutor_service.py            # TutorService — orchestration layer
+│   │   ├── llm_service.py              # LLMService — provider-agnostic interface
+│   │   ├── response_validator.py       # Semantic validation of LLM output
+│   │   └── providers/
+│   │       └── gemini.py               # Gemini SDK implementation
 │   └── core/
-│       ├── config.py            # Centralised settings via pydantic-settings
-│       └── logging.py           # Logging setup and get_logger() helper
+│       ├── config.py                   # Settings (pydantic-settings)
+│       ├── exceptions.py               # Application-level exception types
+│       └── logging.py                  # Logging setup
 ├── tests/
-│   ├── test_health.py
-│   └── test_tutor.py
+│   ├── test_health.py                  # Health endpoint tests
+│   ├── test_tutor.py                   # Phase 1 endpoint tests (all still pass)
+│   └── test_llm_service.py             # Phase 2 LLM integration tests
 ├── .env.example
 ├── .gitignore
 ├── pytest.ini
@@ -78,6 +86,7 @@ ai-tutor/
 | Pydantic v2 | Request/response validation |
 | pydantic-settings | Environment-based configuration |
 | Uvicorn | ASGI server |
+| google-genai | Official Gemini SDK (Phase 2) |
 | pytest | Test runner |
 | httpx | HTTP client (used by FastAPI TestClient) |
 
@@ -92,12 +101,23 @@ python -m venv .venv
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Copy the environment template
+Copy-Item .env.example .env
 ```
 
-Copy `.env.example` to `.env`:
+Edit `.env` — for mock mode (no Gemini key needed):
 
-```powershell
-Copy-Item .env.example .env
+```
+TUTOR_MOCK_MODE=true
+```
+
+For real Gemini calls:
+
+```
+TUTOR_MOCK_MODE=false
+GEMINI_API_KEY=your-key-here
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
 **Run locally:**
@@ -106,7 +126,7 @@ Copy-Item .env.example .env
 uvicorn app.main:app --reload
 ```
 
-**Run tests:**
+**Run tests (no Gemini key required):**
 
 ```powershell
 pytest
@@ -119,6 +139,43 @@ pytest
 
 ---
 
+## Mock Mode
+
+Set `TUTOR_MOCK_MODE=true` (the default) to run without calling the Gemini API.
+
+- All tests pass in mock mode — no API key required.
+- The mock response uses the **same schema** as a real Gemini response.
+- Safe for local development and CI/CD.
+
+Set `TUTOR_MOCK_MODE=false` to enable real Gemini calls. You must also set `GEMINI_API_KEY`.
+
+---
+
+## Architecture
+
+```
+LearnTrace Backend
+       ↓
+   Tutor API  (POST /api/v1/tutor/explain)
+       ↓
+ TutorService
+  ├─ Mock mode → deterministic response
+  └─ Real mode ↓
+          LLMService        (provider-agnostic)
+               ↓
+          GeminiProvider    (google-genai SDK)
+               ↓
+          Gemini LLM
+               ↓
+          Structured JSON response (validated)
+               ↓
+          TutorResponse
+```
+
+The Gemini provider sits entirely behind the `LLMService` boundary. The API layer and schemas never depend on the Gemini SDK directly. Swapping providers requires only a new file under `app/services/providers/`.
+
+---
+
 ## API Endpoints
 
 ### `GET /health`
@@ -126,10 +183,7 @@ pytest
 Service health check.
 
 ```json
-{
-  "status": "ok",
-  "service": "ai-tutor"
-}
+{ "status": "ok", "service": "ai-tutor" }
 ```
 
 ---
@@ -164,9 +218,7 @@ Generate a tutoring response for a learner's incorrect answer.
 }
 ```
 
-> `detected_gap` is optional. The LearnTrace mastery engine may or may not supply it.
-
-This is an integration-oriented API/domain representation and may be refined in collaboration with the main LearnTrace backend team.
+> `detected_gap` is optional.
 
 **Response — `TutorResponse`**
 
@@ -184,32 +236,36 @@ This is an integration-oriented API/domain representation and may be refined in 
 }
 ```
 
-The response contains:
+**Error responses:**
 
-1. Why the learner's answer was wrong.
-2. A simple explanation of the relevant concept.
-3. One relevant worked example.
-4. One similar practice question.
+| HTTP | Cause |
+|---|---|
+| 422 | Invalid request body (Pydantic validation) |
+| 502 | Gemini API failure or malformed LLM response |
+| 503 | LLM not configured (missing API key in real mode) |
 
 ---
 
-## Architecture
+## Structured Output
 
-```
-LearnTrace Backend
-       ↓
-   Tutor API
-       ↓
- TutorService
-       ↓
- Future LLM Service   ← swappable, provider-agnostic
-       ↓
-      LLM
-       ↓
-Structured Tutor Response
-```
+The Gemini provider uses `response_schema=TutorResponse` in the Gemini API config. This requests structured JSON output matching the `TutorResponse` Pydantic model directly — no manual JSON parsing from free-form text.
 
-The LLM provider and prompting logic sit behind the `TutorService` / LLM service boundary. The rest of LearnTrace integrates through the API contract and does not need to know which provider or model is in use.
+After receiving the response, the service additionally validates:
+- All text fields are non-empty.
+- Practice question has exactly four distinct options.
+- `correct_option` matches one of the four options exactly.
+
+If validation fails, one retry is attempted. If both fail, HTTP 502 is returned.
+
+---
+
+## Security
+
+- API keys are never hardcoded — always read from environment.
+- `.env` is in `.gitignore` and must never be committed.
+- Learner-supplied fields (learner answer, question text, detected gap) are embedded inside clearly labelled prompt sections — they are treated as data, not as instructions.
+- The system prompt and API keys are never exposed in responses.
+- Raw provider exceptions are never returned to API consumers.
 
 ---
 
@@ -218,20 +274,31 @@ The LLM provider and prompting logic sit behind the `TutorService` / LLM service
 | Variable | Default | Notes |
 |---|---|---|
 | `APP_ENV` | `development` | Runtime environment |
-| `LLM_PROVIDER` | *(empty)* | Phase 2+ |
-| `LLM_MODEL` | *(empty)* | Phase 2+ |
-| `LLM_API_KEY` | *(empty)* | **Never commit.** Phase 2+ |
+| `TUTOR_MOCK_MODE` | `true` | `false` to call Gemini |
+| `GEMINI_API_KEY` | *(empty)* | Required when mock mode is off |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Gemini model to use |
 
 ---
 
-## Current Limitations (Phase 1)
+## Testing Without Gemini
 
-- No real LLM — `TutorService` returns a deterministic placeholder response.
-- No conversation persistence.
+All tests run in mock mode by default. No Gemini key is needed.
+
+```powershell
+pytest
+```
+
+The Phase 2 test file (`tests/test_llm_service.py`) mocks the Gemini provider at the service boundary so no network calls are made.
+
+---
+
+## Current Limitations
+
+- No conversation persistence across requests (stateless by design).
 - No database connection.
-- No mastery logic or gap detection (those live in LearnTrace core).
-- No learning-path logic.
+- No mastery logic, gap detection, or learning-path logic (those live in LearnTrace core).
 - No frontend (separate team).
+- One practice question per response (by design — MVP scope).
 
 ---
 
@@ -241,11 +308,11 @@ The LLM provider and prompting logic sit behind the `TutorService` / LLM service
 
 **Stable API** — Other teams integrate through the API contract, not internal implementation details.
 
-**Modular internals** — LLM providers and prompting logic are replaceable without changing the API.
+**Modular internals** — The Gemini provider is isolated behind `LLMService`. Replacing it requires only a new provider file.
 
 **Simple MVP** — A small, reliable system is preferred over unnecessary infrastructure.
 
-**Safe failure** — A failure in the external LLM call must not bring down the rest of LearnTrace.
+**Safe failure** — LLM failures return clean HTTP errors, not raw exceptions.
 
 ---
 
@@ -253,57 +320,36 @@ The LLM provider and prompting logic sit behind the `TutorService` / LLM service
 
 ### Phase 1 — Backend Foundation ✅ Complete
 
-- FastAPI setup and API versioning
-- Pydantic request/response schemas
-- `TutorService` with placeholder response
-- Centralised configuration and logging
-- pytest test suite (19 tests, all passing)
-- Documentation
+FastAPI setup, API versioning, Pydantic schemas, TutorService, configuration, logging, tests, documentation.
 
-### Phase 2 — LLM Integration
+### Phase 2 — LLM Integration ✅ Complete
 
-- LLM provider abstraction (`LLMService`)
-- Prompt construction (`PromptService`)
-- Tutor system prompt
-- Structured LLM response parsing
-- Response validation
+Gemini integration, prompt layer, LLMService abstraction, structured output, response validation, mock mode, error handling, Phase 2 tests.
 
-### Phase 3 — Core Tutor Behaviour
+### Phase 3 — Prompt Tuning & Reliability
 
-Implement the full tutoring flow from trusted context:
+- Iterate prompt quality for real learner data.
+- LLM timeout configuration and controlled retries.
+- Malformed response fallback strategy.
+- Prompt-injection hardening review.
+- Improved observability.
 
-```
-Learner mistake
-  → explain why it is wrong
-  → explain the concept simply
-  → give a relevant example
-  → generate one similar practice question
-```
-
-### Phase 4 — Reliability
-
-- LLM timeout handling and controlled retries
-- Malformed response handling
-- Prompt-injection protection
-- Structured validation
-- Observability and logging
-
-### Phase 5 — LearnTrace Integration
+### Phase 4 — LearnTrace Integration
 
 Connect the Tutor API with the real LearnTrace backend and consume actual trusted assessment context from the mastery and competency systems.
 
 ### Optional Later Features
 
-- Multilingual explanations
-- Contextual follow-up questions within a session
-- Additional tutoring strategies
-- Tutor analytics
+- Multilingual explanations.
+- Contextual follow-up questions within a session.
+- Additional tutoring strategies.
+- Tutor analytics.
 
 ---
 
 ## Database
 
-The AI Tutor does not own persistence and does not connect to the LearnTrace database directly. It is stateless: all context is provided per request by the LearnTrace backend.
+The AI Tutor does not own persistence and does not connect to the LearnTrace database. It is stateless — all context is provided per request.
 
 ## Frontend
 
