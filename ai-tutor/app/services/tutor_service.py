@@ -113,74 +113,64 @@ class TutorService:
         """
         Return a deterministic mock TutorResponse without calling any LLM.
 
-        Phase 3: fully context-aware — all fields are derived from the
-        supplied TutorContext rather than from hard-coded subject content.
-        This makes mock mode representative for any competency or subject.
+        Phase 3 (revised): uses clearly marked [MOCK] placeholder language so
+        that the mock output cannot be mistaken for genuine tutoring content
+        and cannot prime a real LLM with vocabulary-style template patterns.
+
+        All fields still reference the actual competency, question, learner
+        answer, and correct answer from the supplied TutorContext, making the
+        mock representative for any domain or question type.
 
         Guarantees
         ----------
-        - explanation references learner_answer and correct_answer.
-        - simple_explanation references competency.name.
-        - worked_example references competency.name and correct_answer.
-        - practice_question references competency.name and is structurally
-          distinct from the original question.
         - All fields meet the response validator's minimum length floors.
         - practice_question has exactly four distinct options with a valid
-          correct_option.
+          correct_option that is different from the original question text.
+        - No vocabulary-substitution patterns that could mislead a real LLM.
         """
         competency_name = context.competency.name
         correct_answer = context.correct_answer
         learner_answer = context.learner_answer
-        gap_description = (
-            context.detected_gap.description
-            if context.detected_gap
-            else f"a conceptual confusion within {competency_name}"
-        )
+        question_text = context.question.text
 
         return TutorResponse(
             explanation=(
-                f"You chose '{learner_answer}', but the correct answer is "
-                f"'{correct_answer}'. The distinction here matters for "
-                f"**{competency_name}**: {gap_description}. "
-                f"Understanding why '{learner_answer}' does not fit — and why "
-                f"'{correct_answer}' does — is the key insight this question is testing."
+                f"[MOCK] This is placeholder output for testing purposes. "
+                f"A real LLM response would examine the question "
+                f"'{question_text}', trace through the reasoning that leads "
+                f"to '{learner_answer}', identify the specific error, and explain "
+                f"why '{correct_answer}' is correct using the actual logic of the problem."
             ),
             simple_explanation=(
-                f"In **{competency_name}**, it is important to be precise about "
-                f"definitions. The option '{correct_answer}' is correct because it "
-                f"captures the specific meaning the concept requires, while "
-                f"'{learner_answer}' describes something related but distinct. "
-                f"Keeping these definitions clear will help you answer similar "
-                f"questions confidently."
+                f"[MOCK] A real LLM response would explain the core rule or principle "
+                f"of **{competency_name}** that this question is testing. "
+                f"It would describe the concept in plain, jargon-free language "
+                f"suitable for a learner encountering it for the first time."
             ),
             worked_example=(
-                f"Here is a concrete example to illustrate **{competency_name}**: "
-                f"Imagine a researcher designing a study. They encounter exactly the "
-                f"kind of distinction this question is testing — the difference between "
-                f"'{learner_answer}' and '{correct_answer}'. "
-                f"In practice, confusing these two leads to errors in study design or "
-                f"interpretation. Recognising which concept applies in context is a "
-                f"core skill in {competency_name}."
+                f"[MOCK] A real LLM response would provide a concrete example that "
+                f"uses the same type of reasoning as the original question. "
+                f"For a calculation question it would show a similar calculation with "
+                f"intermediate steps. For a conceptual question it would give a relevant "
+                f"real-world scenario. The example would reinforce the distinction "
+                f"between '{learner_answer}' and '{correct_answer}' in {competency_name}."
             ),
             practice_question=PracticeQuestion(
                 question=(
-                    f"In the context of {competency_name}, which of the following "
-                    f"statements about '{correct_answer}' is most accurate?"
+                    f"[MOCK] A real LLM response would generate a genuine new problem "
+                    f"for {competency_name} — not a meta-question about the answer values."
                 ),
                 options=[
-                    f"It is the same concept as '{learner_answer}'",
-                    f"It is the correct term for this situation in {competency_name}",
-                    f"It applies only in advanced cases of {competency_name}",
-                    f"It is unrelated to {competency_name}",
+                    "[MOCK] Option A — placeholder",
+                    "[MOCK] Option B — placeholder",
+                    "[MOCK] Option C — placeholder",
+                    "[MOCK] Option D — placeholder",
                 ],
-                correct_option=(
-                    f"It is the correct term for this situation in {competency_name}"
-                ),
+                correct_option="[MOCK] Option A — placeholder",
                 explanation=(
-                    f"In {competency_name}, '{correct_answer}' has a precise and "
-                    f"distinct meaning that sets it apart from '{learner_answer}'. "
-                    f"Choosing the right term in context is central to applying "
-                    f"the concept correctly."
+                    f"[MOCK] A real response would explain why the correct answer "
+                    f"follows from the same reasoning as the original question "
+                    f"about {competency_name}."
                 ),
             ),
         )

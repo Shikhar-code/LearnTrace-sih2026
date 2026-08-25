@@ -379,3 +379,136 @@ def test_mock_explanation_references_correct_answer() -> None:
     assert CONTEXT_WITH_GAP.correct_answer in result.explanation, (
         "Mock explanation must reference the trusted correct answer."
     )
+
+
+# ================================================================== #
+# 17–23  Phase 3 quality-fix tests
+# ================================================================== #
+
+
+def test_prompt_contains_original_question_text() -> None:
+    """The original question text must appear in the user prompt data sections."""
+    prompt = build_tutor_prompt(CONTEXT_WITH_GAP)
+    assert CONTEXT_WITH_GAP.question.text in prompt, (
+        "The original question text must be present in the prompt so the "
+        "LLM can reason from it."
+    )
+
+
+def test_prompt_output_instructions_do_not_interpolate_answer_values() -> None:
+    """
+    Answer values (learner_answer, correct_answer) must appear only in the
+    DATA sections, not in the instruction section.
+
+    This prevents the LLM from pattern-matching a template and treats the
+    answer values as results of reasoning — not as strings to slot in.
+    """
+    prompt = build_tutor_prompt(CONTEXT_WITH_GAP)
+
+    # The prompt must have a clear separator between data and instructions.
+    assert "---" in prompt, "Prompt must separate data sections from instructions."
+
+    # Everything after the separator is the instructions section.
+    _, instructions_part = prompt.split("---", 1)
+
+    # The specific learner/correct answer VALUES must not appear in the
+    # instructions — they belong only in the data sections above.
+    assert CONTEXT_WITH_GAP.learner_answer not in instructions_part, (
+        f"Learner answer '{CONTEXT_WITH_GAP.learner_answer}' must not be "
+        f"interpolated into the instruction section."
+    )
+    assert CONTEXT_WITH_GAP.correct_answer not in instructions_part, (
+        f"Correct answer '{CONTEXT_WITH_GAP.correct_answer}' must not be "
+        f"interpolated into the instruction section."
+    )
+
+
+def test_prompt_instructs_reasoning_from_question() -> None:
+    """
+    The output field instructions must describe a reasoning PROCESS rather
+    than simple value substitution. Keywords like 'examine', 'trace', or
+    'reason' indicate process-oriented instructions.
+    """
+    prompt = build_tutor_prompt(CONTEXT_WITH_GAP)
+    _, instructions_part = prompt.split("---", 1)
+    lower = instructions_part.lower()
+
+    reasoning_keywords = ["examine", "trace", "reason", "process"]
+    assert any(kw in lower for kw in reasoning_keywords), (
+        f"Instruction section must include reasoning-process language. "
+        f"Expected one of: {reasoning_keywords}"
+    )
+
+
+def test_prompt_instructs_domain_matched_example() -> None:
+    """
+    The system prompt or user prompt must instruct the model to match the
+    example type to the question type — preventing generic unrelated examples.
+    """
+    combined = TUTOR_SYSTEM_PROMPT.lower() + build_tutor_prompt(CONTEXT_WITH_GAP).lower()
+    # Must contain guidance about matching the type/domain of the example.
+    assert "same type" in combined or "type of reasoning" in combined, (
+        "Prompt must instruct the model to match example type to question type."
+    )
+
+
+def test_system_prompt_prohibits_vocabulary_style_questions() -> None:
+    """
+    The system prompt must explicitly prohibit practice questions that treat
+    numerical answers or computation results as vocabulary terms.
+    """
+    sp = TUTOR_SYSTEM_PROMPT
+
+    # The system prompt must contain an explicit prohibition.
+    has_forbidden = "FORBIDDEN" in sp or "NEVER" in sp
+    assert has_forbidden, (
+        "System prompt must explicitly prohibit (FORBIDDEN/NEVER) bad "
+        "practice question patterns."
+    )
+
+    # The prohibition must be in the context of practice questions.
+    sp_lower = sp.lower()
+    assert "practice" in sp_lower and (
+        "forbidden" in sp_lower or "never" in sp_lower
+    ), (
+        "System prompt must connect the prohibition to the practice question field."
+    )
+
+
+def test_system_prompt_requires_genuine_new_problem() -> None:
+    """
+    The system prompt must require that the practice question is a genuine
+    new problem — not a meta-question about the answer values.
+    """
+    sp_lower = TUTOR_SYSTEM_PROMPT.lower()
+    assert "genuine" in sp_lower or "new problem" in sp_lower, (
+        "System prompt must require a genuine new problem for the practice question."
+    )
+
+
+def test_mock_does_not_use_vocabulary_style_template() -> None:
+    """
+    The mock response must not use vocabulary-substitution language such as
+    'captures the specific meaning' or 'which of the following statements about'
+    — patterns that were causing Gemini to produce educational nonsense.
+    """
+    service = TutorService()
+    with patch("app.services.tutor_service.settings") as mock_settings:
+        mock_settings.TUTOR_MOCK_MODE = True
+        result = service.explain(CONTEXT_WITH_GAP)
+
+    combined = (
+        result.explanation
+        + result.simple_explanation
+        + result.worked_example
+        + result.practice_question.question
+        + result.practice_question.explanation
+    ).lower()
+
+    assert "captures the specific meaning" not in combined, (
+        "Mock must not use 'captures the specific meaning' template language."
+    )
+    assert "which of the following statements about" not in combined, (
+        "Mock must not use vocabulary-style question pattern "
+        "'which of the following statements about [answer value]'."
+    )
