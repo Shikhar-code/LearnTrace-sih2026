@@ -1,6 +1,6 @@
 # LearnTrace AI Tutor
 
-> **Backend-only module.** Phase 3: Tutoring quality improvements.
+> **Backend-only module.** Phase 3.5: Groq fallback provider added.
 
 The AI Tutor is a focused backend service within the LearnTrace platform. It receives structured assessment context from the LearnTrace backend and returns tutoring content that helps a learner understand their mistake.
 
@@ -56,10 +56,11 @@ ai-tutor/
 │   │   └── tutor.py                    # System prompt + build_tutor_prompt()
 │   ├── services/
 │   │   ├── tutor_service.py            # TutorService — orchestration layer
-│   │   ├── llm_service.py              # LLMService — provider-agnostic interface
+│   │   ├── llm_service.py              # LLMService — provider-agnostic interface + fallback
 │   │   ├── response_validator.py       # Semantic + quality validation of LLM output
 │   │   └── providers/
-│   │       └── gemini.py               # Gemini SDK implementation
+│   │       ├── gemini.py               # Gemini SDK implementation (primary)
+│   │       └── groq.py                 # Groq SDK implementation (fallback)
 │   └── core/
 │       ├── config.py                   # Settings (pydantic-settings)
 │       ├── exceptions.py               # Application-level exception types
@@ -68,7 +69,8 @@ ai-tutor/
 │   ├── test_health.py                  # Health endpoint tests
 │   ├── test_tutor.py                   # Phase 1 endpoint tests
 │   ├── test_llm_service.py             # Phase 2 LLM integration tests
-│   └── test_prompt_quality.py          # Phase 3 tutoring quality tests
+│   ├── test_prompt_quality.py          # Phase 3 tutoring quality tests
+│   └── test_groq_fallback.py           # Phase 3.5 Groq provider + fallback tests
 ├── .env.example
 ├── .gitignore
 ├── pytest.ini
@@ -87,7 +89,8 @@ ai-tutor/
 | Pydantic v2 | Request/response validation |
 | pydantic-settings | Environment-based configuration |
 | Uvicorn | ASGI server |
-| google-genai | Official Gemini SDK |
+| google-genai | Official Gemini SDK (primary LLM) |
+| groq | Official Groq SDK (fallback LLM) |
 | pytest | Test runner |
 | httpx | HTTP client (used by FastAPI TestClient) |
 
@@ -107,19 +110,24 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edit `.env` — for mock mode (no Gemini key needed):
+Edit `.env` — for mock mode (no API keys needed):
 
 ```
 TUTOR_MOCK_MODE=true
 ```
 
-For real Gemini calls:
+For real calls with Gemini primary + Groq fallback:
 
 ```
 TUTOR_MOCK_MODE=false
-GEMINI_API_KEY=your-key-here
+GEMINI_API_KEY=your-gemini-key-here
 GEMINI_MODEL=gemini-2.0-flash
+GROQ_API_KEY=your-groq-key-here
+GROQ_MODEL=openai/gpt-oss-20b
 ```
+
+Groq is optional — if `GROQ_API_KEY` is absent, fallback calls will raise
+`LLMMisconfiguredError` rather than silently failing.
 
 **Run locally:**
 
@@ -127,11 +135,14 @@ GEMINI_MODEL=gemini-2.0-flash
 uvicorn app.main:app --reload
 ```
 
-**Run tests (no Gemini key required):**
+**Run tests (no API keys required):**
 
 ```powershell
 pytest
 ```
+
+Tests never call real Gemini or Groq APIs. Both SDKs are mocked at the
+provider boundary.
 
 **Local API documentation:**
 
@@ -142,14 +153,16 @@ pytest
 
 ## Mock Mode
 
-Set `TUTOR_MOCK_MODE=true` (the default) to run without calling the Gemini API.
+Set `TUTOR_MOCK_MODE=true` (the default) to run without calling any LLM provider.
 
-- All tests pass in mock mode — no API key required.
+- All tests pass in mock mode — no API keys required.
+- Neither Gemini nor Groq is called.
 - The mock response is fully context-aware: it adapts to the supplied competency, learner answer, and correct answer. No subject-specific content is hard-coded.
 - The mock uses the same `TutorResponse` schema as the real LLM path.
 - Safe for local development and CI/CD.
 
-Set `TUTOR_MOCK_MODE=false` to enable real Gemini calls. You must also set `GEMINI_API_KEY`.
+Set `TUTOR_MOCK_MODE=false` to enable real LLM calls. Gemini is the primary provider
+and Groq is the automatic fallback.
 
 ---
 
@@ -209,20 +222,38 @@ LearnTrace Backend
    Tutor API  (POST /api/v1/tutor/explain)
        ↓
  TutorService
-  ├─ Mock mode → context-aware deterministic response
+  ├─ Mock mode → context-aware deterministic response (no LLM call)
   └─ Real mode ↓
           LLMService        (provider-agnostic; passes original question text)
                ↓
-          GeminiProvider    (google-genai SDK)
+          GeminiProvider    (primary: google-genai SDK)
                ↓
-          Gemini LLM
-               ↓
-          Structured JSON response
-               ↓
+     ┌────────────────────────────────────┐
+     │ success │ recoverable failure (429, timeout)  │
+     └────────────────────────────────────┘
+               ↓                   ↓
+          Structured JSON    GroqProvider (fallback: groq SDK)
+               ↓                   ↓
           ResponseValidator (schema + min-length + identical-question check)
                ↓
           TutorResponse
 ```
+
+### Fallback Conditions
+
+Groq is activated automatically when Gemini raises a **recoverable provider error**:
+
+| Condition | Fallback triggered? |
+|---|---|
+| HTTP 429 / rate limit | Yes |
+| Timeout | Yes |
+| Transient network/API error | Yes |
+| Missing `GEMINI_API_KEY` (misconfiguration) | No — propagates as 503 |
+| Malformed LLM output (validation failure) | No — retry logic handles it |
+| Invalid application input | No — propagates as 422 |
+
+If both Gemini and Groq fail, a clean `LLMProviderError` is raised, which the API
+route maps to HTTP 502.
 
 ---
 
@@ -291,8 +322,8 @@ Generate a tutoring response for a learner's incorrect answer.
 | HTTP | Cause |
 |---|---|
 | 422 | Invalid request body (Pydantic validation) |
-| 502 | Gemini API failure, malformed response, or validation failure after retries |
-| 503 | LLM not configured (missing API key in real mode) |
+| 502 | Both providers failed, or malformed response after retries |
+| 503 | LLM misconfigured (missing API key in real mode) |
 
 ---
 
@@ -311,15 +342,19 @@ Generate a tutoring response for a learner's incorrect answer.
 | Variable | Default | Notes |
 |---|---|---|
 | `APP_ENV` | `development` | Runtime environment |
-| `TUTOR_MOCK_MODE` | `true` | `false` to call Gemini |
+| `TUTOR_MOCK_MODE` | `true` | `false` to enable real LLM calls |
+| `LLM_PROVIDER` | `gemini` | Primary provider (`gemini` only currently) |
 | `GEMINI_API_KEY` | *(empty)* | Required when mock mode is off |
 | `GEMINI_MODEL` | `gemini-2.0-flash` | Gemini model to use |
+| `GROQ_API_KEY` | *(empty)* | Required when Gemini fails and fallback is needed |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` | Groq model to use for fallback |
 
 ---
 
 ## Testing
 
-All tests run in mock mode by default. No Gemini key is needed.
+All tests run in mock mode by default. No API keys are required.
+Neither Gemini nor Groq is called during `pytest` — both SDKs are mocked.
 
 ```powershell
 pytest
@@ -331,6 +366,7 @@ pytest
 | `test_tutor.py` | API contract, request validation, response schema |
 | `test_llm_service.py` | LLM path delegation, retry logic, error mapping, prompt injection |
 | `test_prompt_quality.py` | Prompt construction, min-length validation, identical-question check, mock context-awareness |
+| `test_groq_fallback.py` | Groq provider, fallback orchestration, configuration, mock mode isolation |
 
 ---
 
@@ -373,6 +409,10 @@ Gemini integration, prompt layer, LLMService abstraction, structured output, res
 ### Phase 3 — Tutoring Quality ✅ Complete
 
 Misconception-focused explanations, learner-friendly tone, concrete examples, practice-question safeguards (not-identical check), response quality validation (minimum lengths), context-aware mock mode, Phase 3 tests.
+
+### Phase 3.5 — Groq Fallback Provider ✅ Complete
+
+Groq as automatic fallback provider when Gemini encounters a recoverable failure (HTTP 429, timeout, transient errors). Fallback is transparent to TutorService and the API contract. Neither provider is called during tests. 17 new tests added covering provider success, failure, fallback logic, configuration, and mock-mode isolation.
 
 ### Phase 4 — LearnTrace Integration
 

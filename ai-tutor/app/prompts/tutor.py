@@ -94,6 +94,8 @@ The practice question MUST:
   - Have exactly four distinct answer options
   - Have exactly one clearly correct option
   - Include a clear explanation of why the correct option is right
+  - The explanation MUST explicitly name the correct option and explain why it is correct.
+    The text of correct_option must appear verbatim in the explanation.
 
 FORBIDDEN practice question patterns — NEVER generate questions of these forms:
   - "Which statement about '14' is most accurate?"
@@ -201,6 +203,8 @@ concept, etc.).
 - practice_question: Create exactly one new problem that requires the same type of \
 reasoning as the original question. It must be a genuine new problem — not a \
 meta-question about the answer values. Include four distinct options, \
-one correct option, and an explanation of why it is correct.
+one correct option, and an explanation of why it is correct. \
+The explanation must explicitly name the correct option (using its exact text) \
+and explain why it is correct.
 """
     return prompt.strip()
