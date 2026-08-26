@@ -1,97 +1,68 @@
 # LearnTrace Frontend Client (SIH 2026)
 
-Modern, developer-friendly React + TypeScript + Vite dashboard for **LearnTrace**.
+React + TypeScript + Vite dashboard for **LearnTrace** — an AI-powered mastery and learning intelligence engine for NCERT curriculum (Classes 9 & 10).
 
 ---
 
 ## Tech Stack
 
-- **React 18** (`react`, `react-dom`)
-- **React Router 6** (`react-router-dom`)
-- **TypeScript** (strict mode, modular types)
-- **Vite** (fast bundling & hot module reloading)
-- **Tailwind CSS** (clean, high-contrast, slate-themed UI)
-- **Lucide React** (`lucide-react` icons)
-- **Axios** (type-safe REST client with centralized error handling)
+- **React 18** (`react`, `react-dom`, `react-router-dom`)
+- **TypeScript** & **Vite**
+- **Tailwind CSS** & **Lucide React**
+- **Axios** (type-safe REST client)
 
 ---
 
-## Routing & Layout Architecture
+## Routing & Layouts
 
-The application is structured into two dedicated layout shells:
+Fixed persistent sidebar and sticky top navbar across all pages.
 
-### 1. Student Portal (`StudentLayout`)
-- **`/` or `/curriculum`**: Cascading Curriculum Explorer (`Class → Subject → Chapter → Topic`) & Topic Questions.
-- **`/quiz`**: Interactive Quiz Runner with active per-question latency measurement and scoring.
-- **`/mastery`**: Mastery & Learning Velocity Analytics (supports `?attempt_id=...`).
-- *Note:* The content ingestion tools are excluded from the Student sidebar for a focused learning experience. A subtle button in the sidebar footer allows authorized users to switch to the Admin Portal.
+### Student Portal (`StudentLayout`)
+- **`/curriculum`**: NCERT curriculum hierarchy (`Class → Subject → Chapter → Topic`) & questions repository.
+- **`/knowledge-graph`**: Interactive prerequisite DAG with zoom/drag canvas, 500ms hover inspector, and in-page topic remediation paths.
+- **`/quiz`**: Interactive quiz runner with per-question latency tracking.
+- **`/mastery`**: Mastery analytics, Bayesian profile grid, and root-cause remediation traces.
 
-### 2. Admin Portal (`AdminLayout`)
-- **`/admin` or `/admin/ingest`**: Multipart PDF Ingestion, Text Extractor & Bulk Chunk-to-Topic Mapper (`PATCH /chunks/bulk-topic`).
-- **`/admin/catalogue`**: NCERT Source Document Catalogue with class and subject filters.
-- A "Back to Student Portal" quick-action button in the sidebar footer allows immediate return to `/curriculum`.
+### Admin Portal (`AdminLayout`)
+- **`/admin/ingest`**: PDF upload, chapter text extraction & chunk-to-topic bulk mapper.
+- **`/admin/catalogue`**: Source document repository with class and subject filters.
 
 ---
 
-## Project Directory Structure
+## Directory Structure
 
 ```text
 frontend/
 ├── src/
 │   ├── components/
-│   │   ├── common/
-│   │   │   ├── AlertBanner.tsx
-│   │   │   ├── Badge.tsx
-│   │   │   ├── LoadingSpinner.tsx
-│   │   │   └── StatCard.tsx
-│   │   └── layout/
-│   │       ├── AdminLayout.tsx       # Dedicated Admin shell with admin navigation
-│   │       ├── StudentLayout.tsx     # Student learning shell (curriculum, quiz, mastery)
-│   │       └── index.ts
+│   │   ├── common/         # StatCard, Badge, LoadingSpinner, AlertBanner
+│   │   ├── intelligence/   # KnowledgeGraphView, LearningPathStepper, MasteryProfileGrid
+│   │   └── layout/         # StudentLayout, AdminLayout, Sidebar, Navbar
 │   ├── pages/
-│   │   ├── Admin/
-│   │   │   └── DocumentCatalogue.tsx # Source repository & catalogue view
-│   │   ├── Assessment/
-│   │   │   └── QuizRunner.tsx        # Interactive quiz runner with timer & grading
-│   │   ├── Curriculum/
-│   │   │   └── CurriculumExplorer.tsx# Academic hierarchy explorer
-│   │   ├── Ingestion/
-│   │   │   └── PdfIngestion.tsx      # PDF Uploader & Chunk Topic Mapper
-│   │   └── Mastery/
-│   │       └── MasteryDashboard.tsx  # Pedagogical mastery telemetry
-│   ├── services/
-│   │   └── api.ts                   # Centralized Axios client
-│   ├── types/
-│   │   └── index.ts                 # TypeScript types matching backend schemas
-│   ├── App.tsx                      # BrowserRouter and nested layout routes
-│   ├── index.css                    # Tailwind CSS directives
-│   └── main.tsx                     # React root entry
-├── .env
-├── .env.example
-├── index.html
-├── package.json
-├── postcss.config.js
-├── tailwind.config.js
-├── tsconfig.json
-├── tsconfig.node.json
-└── vite.config.ts
+│   │   ├── Admin/          # DocumentCatalogue
+│   │   ├── Assessment/     # QuizRunner
+│   │   ├── Curriculum/     # CurriculumExplorer
+│   │   ├── Ingestion/      # PdfIngestion
+│   │   ├── KnowledgeGraph/ # KnowledgeGraphExplorer
+│   │   └── Mastery/        # MasteryDashboard
+│   ├── services/           # api.ts (Centralized Axios client & API endpoints)
+│   ├── types/              # Domain models, intelligence & graph schemas
+│   ├── App.tsx             # Route definitions
+│   └── main.tsx            # Entry point
 ```
 
 ---
 
-## Getting Started
+## Quick Start
 
-### 1. Install Dependencies
 ```bash
+# 1. Install dependencies
 cd frontend
 npm install
-```
 
-### 2. Run Development Server
-```bash
+# 2. Run dev server
 npm run dev
-```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-- Student Portal: [http://localhost:5173/curriculum](http://localhost:5173/curriculum)
-- Admin Portal: [http://localhost:5173/admin](http://localhost:5173/admin)
+# 3. Build for production
+npm run build
+```
