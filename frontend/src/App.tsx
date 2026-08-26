@@ -1,11 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { StudentLayout } from './components/layout/StudentLayout';
-import { AdminLayout } from './components/layout/AdminLayout';
-import { CurriculumExplorer } from './pages/Curriculum/CurriculumExplorer';
-import { QuizRunner } from './pages/Assessment/QuizRunner';
-import { MasteryDashboard } from './pages/Mastery/MasteryDashboard';
-import { PdfIngestion } from './pages/Ingestion/PdfIngestion';
-import { DocumentCatalogue } from './pages/Admin/DocumentCatalogue';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { StudentLayout } from "./components/layout/StudentLayout";
+import { AdminLayout } from "./components/layout/AdminLayout";
+import { CurriculumExplorer } from "./pages/Curriculum/CurriculumExplorer";
+import { QuizRunner } from "./pages/Assessment/QuizRunner";
+import { MasteryDashboard } from "./pages/Mastery/MasteryDashboard";
+import { KnowledgeGraphExplorer } from "./pages/KnowledgeGraph/KnowledgeGraphExplorer";
+import { PdfIngestion } from "./pages/Ingestion/PdfIngestion";
+import { DocumentCatalogue } from "./pages/Admin/DocumentCatalogue";
 
 export function App() {
   return (
@@ -15,6 +16,11 @@ export function App() {
         <Route element={<StudentLayout />}>
           <Route path="/" element={<Navigate to="/curriculum" replace />} />
           <Route path="/curriculum" element={<CurriculumExplorer />} />
+          <Route path="/knowledge-graph" element={<KnowledgeGraphExplorer />} />
+          <Route
+            path="/graph"
+            element={<Navigate to="/knowledge-graph" replace />}
+          />
           <Route path="/quiz" element={<QuizRunner />} />
           <Route path="/mastery" element={<MasteryDashboard />} />
         </Route>

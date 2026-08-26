@@ -185,6 +185,8 @@ export interface TopicMasteryAgg {
   correct_count: number;
   accuracy: number;
   avg_time_seconds: number;
-  status: 'Mastered' | 'Developing' | 'Needs Review';
+  status: "Mastered" | "Developing" | "Needs Review";
 }
 
+// Re-export Intelligence Engine Types and Schemas
+export * from "./intelligence";

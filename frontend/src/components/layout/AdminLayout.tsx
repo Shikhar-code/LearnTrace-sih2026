@@ -57,7 +57,7 @@ export const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F7F7F5] overflow-x-hidden">
+    <div className="flex h-screen bg-[#F7F7F5] overflow-hidden">
       {/* Mobile Slide-Over Backdrop */}
       {mobileMenuOpen && (
         <div
@@ -73,7 +73,7 @@ export const AdminLayout: React.FC = () => {
         }`}
       >
         {/* Drawer Header */}
-        <div className="h-16 px-5 flex items-center justify-between border-b border-stone-200">
+        <div className="h-16 px-5 flex items-center justify-between border-b border-stone-200 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-stone-900 flex items-center justify-center text-white shadow-xs">
               <ShieldCheck className="w-4 h-4 text-amber-400" />
@@ -138,7 +138,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Drawer Footer */}
-        <div className="p-4 border-t border-stone-200 space-y-3">
+        <div className="p-4 border-t border-stone-200 space-y-3 flex-shrink-0">
           <div className="bg-stone-100/70 rounded-xl p-3 text-xs border border-stone-200/80">
             <div className="flex items-center gap-1.5 text-stone-700 font-medium">
               <Database className="w-3.5 h-3.5 text-stone-600" />
@@ -160,10 +160,10 @@ export const AdminLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Persistent Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 bg-[#FBFBFA] border-r border-stone-200 flex-col flex-shrink-0 min-h-screen">
+      {/* Persistent Fixed Desktop Sidebar */}
+      <aside className="hidden md:flex md:w-64 bg-[#FBFBFA] border-r border-stone-200 flex-col flex-shrink-0 h-screen sticky top-0 z-30">
         {/* Brand Header */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-stone-200">
+        <div className="h-16 px-6 flex items-center justify-between border-b border-stone-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-stone-900 flex items-center justify-center text-white shadow-xs">
               <ShieldCheck className="w-4 h-4 text-amber-400" />
@@ -180,7 +180,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Navigation Links */}
-        <div className="flex-1 py-6 px-3 space-y-1">
+        <div className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
           <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-stone-400 font-mono">
             Ingestion & Management
           </div>
@@ -220,7 +220,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Footer Link: Back to Student Portal */}
-        <div className="p-4 border-t border-stone-200 space-y-3">
+        <div className="p-4 border-t border-stone-200 space-y-3 flex-shrink-0">
           <div className="bg-stone-100/70 rounded-xl p-3 text-xs border border-stone-200/80">
             <div className="flex items-center gap-1.5 text-stone-700 font-medium">
               <Database className="w-3.5 h-3.5 text-stone-600" />
@@ -242,9 +242,9 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Admin Navbar */}
-        <header className="h-16 bg-[#FBFBFA]/90 backdrop-blur border-b border-stone-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        {/* Fixed Sticky Admin Navbar */}
+        <header className="h-16 bg-[#FBFBFA]/95 backdrop-blur border-b border-stone-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Hamburger button on mobile */}
             <button
