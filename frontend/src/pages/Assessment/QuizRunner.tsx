@@ -451,17 +451,17 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
               <button
                 onClick={handleNextOrFinish}
                 disabled={isSubmittingAnswer || !selectedOptionId}
-                className="w-full sm:w-auto px-6 py-2.5 bg-teal-800 text-white rounded-lg font-medium text-xs hover:bg-teal-900 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs"
+                className="w-full sm:w-auto min-w-[160px] h-10 px-5 bg-teal-800 text-white rounded-lg font-medium text-xs hover:bg-teal-900 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs"
               >
                 {isSubmittingAnswer ? (
                   <>
-                    <LoadingSpinner size="sm" className="p-0 text-white" />
-                    <span>Recording Response...</span>
+                    <LoadingSpinner size="sm" className="text-white" />
+                    <span>Saving...</span>
                   </>
                 ) : currentQuestionIndex + 1 === assessment.questions.length ? (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    <span>Submit & Finish Quiz</span>
+                    <span>Submit & Finish</span>
                   </>
                 ) : (
                   <>

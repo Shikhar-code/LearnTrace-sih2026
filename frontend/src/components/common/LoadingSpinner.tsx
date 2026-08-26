@@ -8,7 +8,7 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  label = 'Loading...',
+  label,
   size = 'md',
   className = '',
 }) => {
@@ -18,10 +18,14 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     lg: 'w-7 h-7',
   };
 
+  if (!label) {
+    return <Loader2 className={`${sizeMap[size]} animate-spin text-current ${className}`} />;
+  }
+
   return (
     <div className={`flex flex-col items-center justify-center p-6 text-stone-500 gap-2 ${className}`}>
       <Loader2 className={`${sizeMap[size]} animate-spin text-teal-700`} />
-      {label && <span className="text-xs font-medium text-stone-600">{label}</span>}
+      <span className="text-xs font-medium text-stone-600">{label}</span>
     </div>
   );
 };
