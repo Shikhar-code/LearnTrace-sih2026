@@ -1,0 +1,479 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { assessmentApi, getApiErrorMessage } from '../../services/api';
+import {
+  Assessment,
+  AssessmentQuestion,
+  StartAttemptResponse,
+  FinishAttemptResponse,
+} from '../../types';
+import { Badge } from '../../components/common/Badge';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { AlertBanner } from '../../components/common/AlertBanner';
+import {
+  PlayCircle,
+  Clock,
+  CheckCircle,
+  ArrowRight,
+  RotateCcw,
+  BarChart3,
+  Award,
+  BookOpen,
+} from 'lucide-react';
+
+interface QuizRunnerProps {
+  onNavigateToMastery?: (attemptId: number) => void;
+}
+
+export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) => {
+  const navigate = useNavigate();
+
+  // Assessment Selection & Loader
+  const [assessmentIdInput, setAssessmentIdInput] = useState<number>(1);
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [loadingAssessment, setLoadingAssessment] = useState<boolean>(false);
+
+  // Active Quiz Attempt State
+  const [attempt, setAttempt] = useState<StartAttemptResponse | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState<boolean>(false);
+
+  // Per-Question Timer (in seconds)
+  const [questionTimeSeconds, setQuestionTimeSeconds] = useState<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Completed State
+  const [finishedResult, setFinishedResult] = useState<FinishAttemptResponse | null>(null);
+
+  // UI Alerts
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Load Assessment Definition
+  const loadAssessment = async (id: number) => {
+    setLoadingAssessment(true);
+    setErrorMessage(null);
+    setAttempt(null);
+    setFinishedResult(null);
+    try {
+      const data = await assessmentApi.getAssessment(id);
+      setAssessment(data);
+    } catch (err) {
+      setErrorMessage(
+        `Failed to fetch Assessment #${id}. ${getApiErrorMessage(err)}`
+      );
+      setAssessment(null);
+    } finally {
+      setLoadingAssessment(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAssessment(assessmentIdInput);
+  }, []);
+
+  // Timer Management during active attempt
+  useEffect(() => {
+    if (attempt && !finishedResult) {
+      setQuestionTimeSeconds(0);
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      timerRef.current = setInterval(() => {
+        setQuestionTimeSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [attempt, currentQuestionIndex, finishedResult]);
+
+  // Start Assessment Attempt
+  const handleStartAttempt = async () => {
+    if (!assessment) return;
+    setErrorMessage(null);
+    setFinishedResult(null);
+    setCurrentQuestionIndex(0);
+    setSelectedOptionId(null);
+    setQuestionTimeSeconds(0);
+
+    try {
+      const startRes = await assessmentApi.startAttempt(assessment.id, 1);
+      setAttempt(startRes);
+      setSuccessMessage(`Assessment session started! (Attempt ID #${startRes.attempt_id})`);
+    } catch (err) {
+      setErrorMessage(getApiErrorMessage(err));
+    }
+  };
+
+  // Submit Current Response & Move Next / Finish
+  const handleNextOrFinish = async () => {
+    if (!attempt || !assessment) return;
+    const currentQ: AssessmentQuestion = assessment.questions[currentQuestionIndex];
+
+    if (!selectedOptionId) {
+      setErrorMessage('Please select an option before proceeding.');
+      return;
+    }
+
+    setIsSubmittingAnswer(true);
+    setErrorMessage(null);
+
+    try {
+      await assessmentApi.submitResponse(attempt.attempt_id, {
+        question_id: currentQ.question_id,
+        selected_option_id: selectedOptionId,
+        response_time_seconds: questionTimeSeconds,
+      });
+
+      const nextIndex = currentQuestionIndex + 1;
+
+      if (nextIndex < assessment.questions.length) {
+        setCurrentQuestionIndex(nextIndex);
+        setSelectedOptionId(null);
+      } else {
+        if (timerRef.current) clearInterval(timerRef.current);
+        const finishRes = await assessmentApi.finishAttempt(attempt.attempt_id);
+        setFinishedResult(finishRes);
+      }
+    } catch (err) {
+      setErrorMessage(getApiErrorMessage(err));
+    } finally {
+      setIsSubmittingAnswer(false);
+    }
+  };
+
+  const handleReset = () => {
+    setAttempt(null);
+    setFinishedResult(null);
+    setCurrentQuestionIndex(0);
+    setSelectedOptionId(null);
+    setQuestionTimeSeconds(0);
+    loadAssessment(assessmentIdInput);
+  };
+
+  return (
+    <div className="space-y-5 sm:space-y-6 max-w-4xl mx-auto w-full">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl border border-stone-200/80 p-4 sm:p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-teal-800 font-semibold text-[11px] uppercase tracking-wider">
+              <PlayCircle className="w-3.5 h-3.5" /> Assessment Runner
+            </div>
+            <h1 className="text-lg sm:text-xl font-bold text-stone-900 mt-1 tracking-tight">
+              Interactive Quiz Runner
+            </h1>
+            <p className="text-xs text-stone-600 mt-0.5">
+              Take an interactive topic quiz with per-question latency measurement and automatic grading.
+            </p>
+          </div>
+
+          {/* Assessment ID Selector */}
+          {!attempt && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-stone-100 p-1.5 rounded-lg border border-stone-200/80 text-xs w-full sm:w-auto justify-between">
+                <span className="font-medium text-stone-600 px-1 text-[11px]">Quiz ID:</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={assessmentIdInput}
+                  onChange={(e) => setAssessmentIdInput(Number(e.target.value))}
+                  className="w-14 px-2 py-1 bg-white border border-stone-300 rounded font-mono text-center font-bold text-stone-800 text-xs"
+                />
+                <button
+                  onClick={() => loadAssessment(assessmentIdInput)}
+                  className="px-3 py-1 bg-stone-900 text-white rounded font-medium hover:bg-stone-800 text-xs"
+                >
+                  Load
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Notifications */}
+      {errorMessage && (
+        <AlertBanner
+          type="error"
+          title="Notice"
+          message={errorMessage}
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
+      {successMessage && !attempt && (
+        <AlertBanner
+          type="success"
+          title="Ready"
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
+
+      {loadingAssessment ? (
+        <div className="bg-white p-10 sm:p-12 rounded-xl border border-stone-200/80 text-center shadow-xs">
+          <LoadingSpinner label="Fetching assessment details..." />
+        </div>
+      ) : !assessment ? (
+        <div className="bg-white p-10 sm:p-12 rounded-xl border border-stone-200/80 text-center space-y-3 shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-stone-100 text-stone-400 flex items-center justify-center mx-auto">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-stone-800 text-sm">No Assessment Found</h3>
+          <p className="text-xs text-stone-500 max-w-sm mx-auto">
+            Assessment #{assessmentIdInput} could not be loaded. Ensure the backend database is seeded with assessments.
+          </p>
+        </div>
+      ) : finishedResult ? (
+        /* QUIZ FINISHED RESULTS SCREEN */
+        <div className="bg-white rounded-xl border border-stone-200/80 p-5 sm:p-8 shadow-xs text-center space-y-5 sm:space-y-6">
+          <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center mx-auto shadow-2xs">
+            <Award className="w-7 h-7" />
+          </div>
+
+          <div>
+            <Badge variant="emerald" size="md">
+              Assessment Completed
+            </Badge>
+            <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mt-2 tracking-tight">{assessment.title}</h2>
+            <p className="text-xs text-stone-500 mt-1">
+              Attempt ID: <span className="font-mono font-semibold text-stone-800">#{finishedResult.attempt_id}</span> • User: Demo Student (#1)
+            </p>
+          </div>
+
+          {/* Score Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-lg mx-auto py-1">
+            <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3.5 sm:p-4">
+              <span className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                Total Score
+              </span>
+              <div className="text-2xl sm:text-3xl font-extrabold text-teal-800 mt-1">
+                {finishedResult.score}%
+              </div>
+            </div>
+
+            <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3.5 sm:p-4">
+              <span className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                Correct Answers
+              </span>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-1">
+                {finishedResult.correct ?? '—'} / {finishedResult.answered ?? assessment.questions.length}
+              </div>
+            </div>
+
+            <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3.5 sm:p-4">
+              <span className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                Status
+              </span>
+              <div className="text-sm font-bold text-stone-800 mt-2 flex items-center justify-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-700" /> Finished
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 border-t border-stone-100">
+            <button
+              onClick={() => {
+                if (onNavigateToMastery) {
+                  onNavigateToMastery(finishedResult.attempt_id);
+                } else {
+                  navigate(`/mastery?attempt_id=${finishedResult.attempt_id}`);
+                }
+              }}
+              className="w-full sm:w-auto px-5 py-2.5 bg-teal-800 text-white rounded-lg font-medium text-xs hover:bg-teal-900 transition-all flex items-center justify-center gap-2 shadow-xs"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>View Mastery for Attempt #{finishedResult.attempt_id}</span>
+            </button>
+
+            <button
+              onClick={handleReset}
+              className="w-full sm:w-auto px-5 py-2.5 bg-stone-100 text-stone-700 border border-stone-200 rounded-lg font-medium text-xs hover:bg-stone-200 transition-all flex items-center justify-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Retake Quiz</span>
+            </button>
+          </div>
+        </div>
+      ) : !attempt ? (
+        /* PRE-QUIZ OVERVIEW SCREEN */
+        <div className="bg-white rounded-xl border border-stone-200/80 p-5 sm:p-6 shadow-xs space-y-5 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge variant="teal" size="sm">
+                  Class {assessment.class_level}
+                </Badge>
+                {assessment.duration_minutes && (
+                  <Badge variant="stone" size="sm">
+                    <Clock className="w-3 h-3" /> {assessment.duration_minutes} Mins
+                  </Badge>
+                )}
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-stone-900 mt-2 tracking-tight">{assessment.title}</h2>
+              {assessment.description && (
+                <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                  {assessment.description}
+                </p>
+              )}
+            </div>
+
+            <div className="text-left sm:text-right">
+              <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wider">
+                Total Questions
+              </span>
+              <div className="text-xl sm:text-2xl font-bold text-stone-900">
+                {assessment.questions.length}
+              </div>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-stone-50 rounded-xl p-4 border border-stone-200/70 text-xs text-stone-700 space-y-2">
+            <h4 className="font-semibold text-stone-900">Quiz Guidelines:</h4>
+            <ul className="list-disc list-inside space-y-1 text-[11px] text-stone-600">
+              <li>Each question tracks response latency (time to answer) for velocity analysis.</li>
+              <li>Select the single most appropriate option and click Next to record your response.</li>
+              <li>Scores and per-topic mastery metrics are evaluated automatically upon submission.</li>
+            </ul>
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={handleStartAttempt}
+              disabled={assessment.questions.length === 0}
+              className="w-full py-3 bg-teal-800 text-white rounded-xl font-medium text-xs hover:bg-teal-900 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs"
+            >
+              <PlayCircle className="w-4 h-4" />
+              <span>Start Assessment Now</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* ACTIVE QUESTION RUNNER */
+        <div className="bg-white rounded-xl border border-stone-200/80 shadow-xs overflow-hidden">
+          {/* Active Quiz Header Bar */}
+          <div className="bg-stone-900 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs">
+              <span className="font-medium text-stone-300 uppercase tracking-wider text-[11px] sm:text-xs">
+                Question {currentQuestionIndex + 1} of {assessment.questions.length}
+              </span>
+              <span className="text-stone-600">|</span>
+              <span className="font-mono text-stone-400 text-[10px] sm:text-xs">
+                Attempt #{attempt.attempt_id}
+              </span>
+            </div>
+
+            {/* Per-Question Live Timer */}
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-stone-800 px-2.5 sm:px-3 py-1 rounded-full border border-stone-700 text-xs font-mono">
+              <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span className="text-stone-300 text-[11px] sm:text-xs">
+                Time: <strong className="text-white">{questionTimeSeconds}s</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-stone-100 h-1">
+            <div
+              className="bg-teal-700 h-1 transition-all duration-300"
+              style={{
+                width: `${((currentQuestionIndex + 1) / assessment.questions.length) * 100}%`,
+              }}
+            />
+          </div>
+
+          {/* Question Card Body */}
+          <div className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
+            {/* Question Text */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="teal" size="sm">
+                  Q{currentQuestionIndex + 1}
+                </Badge>
+                <Badge
+                  variant={
+                    assessment.questions[currentQuestionIndex].difficulty === 'hard'
+                      ? 'rose'
+                      : assessment.questions[currentQuestionIndex].difficulty === 'medium'
+                      ? 'amber'
+                      : 'emerald'
+                  }
+                  size="sm"
+                >
+                  {assessment.questions[currentQuestionIndex].difficulty}
+                </Badge>
+              </div>
+              <h3 className="text-sm sm:text-base font-semibold text-stone-900 leading-relaxed">
+                {assessment.questions[currentQuestionIndex].question_text}
+              </h3>
+            </div>
+
+            {/* Touch-Friendly Options List */}
+            <div className="space-y-2.5 sm:space-y-3">
+              {assessment.questions[currentQuestionIndex].options.map((option, idx) => {
+                const isSelected = selectedOptionId === option.id;
+                const letter = String.fromCharCode(65 + idx);
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => setSelectedOptionId(option.id)}
+                    className={`w-full text-left p-3.5 sm:p-4 rounded-xl border text-xs font-medium transition-all flex items-center gap-3 ${
+                      isSelected
+                        ? 'bg-teal-50/80 border-teal-600 text-teal-950 ring-1 ring-teal-600 shadow-2xs'
+                        : 'bg-white border-stone-200/80 text-stone-700 hover:bg-stone-50 hover:border-stone-300 active:bg-stone-100'
+                    }`}
+                  >
+                    <span
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold font-mono transition-colors flex-shrink-0 ${
+                        isSelected
+                          ? 'bg-teal-800 text-white'
+                          : 'bg-stone-100 text-stone-600'
+                      }`}
+                    >
+                      {letter}
+                    </span>
+                    <span className="flex-1 text-xs sm:text-sm leading-relaxed">{option.option_text}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer Navigation Button */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-stone-100">
+              <span className="text-[11px] text-stone-400 font-mono self-start sm:self-auto">
+                Topic ID: #{assessment.questions[currentQuestionIndex].topic_id}
+              </span>
+
+              <button
+                onClick={handleNextOrFinish}
+                disabled={isSubmittingAnswer || !selectedOptionId}
+                className="w-full sm:w-auto px-6 py-2.5 bg-teal-800 text-white rounded-lg font-medium text-xs hover:bg-teal-900 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs"
+              >
+                {isSubmittingAnswer ? (
+                  <>
+                    <LoadingSpinner size="sm" className="p-0 text-white" />
+                    <span>Recording Response...</span>
+                  </>
+                ) : currentQuestionIndex + 1 === assessment.questions.length ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Submit & Finish Quiz</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Next Question</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -132,8 +132,10 @@ def _make_valid_response(
             ],
             correct_option="A list of reachable population members used to draw the sample",
             explanation=(
-                "The sampling frame is the operational list from which the researcher "
-                "selects participants — it is distinct from the broader target population."
+                "The correct answer is 'A list of reachable population members used to draw "
+                "the sample'. The sampling frame is the operational list from which the "
+                "researcher selects participants — it is distinct from the broader target "
+                "population."
             ),
         ),
     )
@@ -233,6 +235,19 @@ def test_system_prompt_contains_practice_question_constraints() -> None:
     )
 
 
+def test_system_prompt_requires_explanation_to_name_correct_option() -> None:
+    """
+    The system prompt must explicitly instruct the model to name the
+    correct option in its explanation — this is the prompt-side complement
+    to the validator's check 8.
+    """
+    sp = TUTOR_SYSTEM_PROMPT.lower()
+    assert "verbatim" in sp or "explicitly name" in sp or "explicitly state" in sp, (
+        "System prompt must instruct the model to name the correct option "
+        "verbatim in its explanation."
+    )
+
+
 # ================================================================== #
 # 8–11  Validator — minimum length
 # ================================================================== #
@@ -241,7 +256,7 @@ def _make_response_with(
     explanation: str = "x" * 100,
     simple_explanation: str = "x" * 100,
     worked_example: str = "x" * 100,
-    pq_explanation: str = "x" * 100,
+    pq_explanation: str = "Option Alpha is correct because " + "x" * 80,
 ) -> TutorResponse:
     """Helper: build a response with controllable field lengths."""
     return TutorResponse(
@@ -286,7 +301,66 @@ def test_validator_rejects_practice_question_explanation_below_minimum_length() 
 
 
 # ================================================================== #
-# 12–13  Validator — practice question quality
+# 12–15  Validator — correct_option must appear in explanation
+# ================================================================== #
+
+
+def test_validator_passes_when_explanation_mentions_correct_option() -> None:
+    """
+    When explanation explicitly contains the correct_option text, validation
+    must succeed (no exception raised).
+    """
+    response = _make_response_with(
+        pq_explanation="The correct answer is 'Option Alpha' because it is the most accurate description."
+    )
+    # Should not raise
+    validate_tutor_response(response)
+
+
+def test_validator_rejects_when_explanation_omits_correct_option() -> None:
+    """
+    When explanation does not contain the correct_option text, check 8 must
+    raise LLMResponseError.  This is the exact class of bug where the model
+    explains one answer but labels a different one as correct.
+    """
+    response = _make_response_with(
+        pq_explanation=(
+            "Option Beta is the right choice because it accurately reflects the concept, "
+            "unlike the other options which are misleading or incomplete descriptions."
+        )
+    )
+    with pytest.raises(LLMResponseError, match="does not mention the correct_option"):
+        validate_tutor_response(response)
+
+
+def test_validator_correct_option_check_is_case_insensitive() -> None:
+    """
+    The explanation check must be case-insensitive: an explanation that
+    contains the correct_option text in a different case still passes.
+    """
+    response = _make_response_with(
+        pq_explanation=(
+            "OPTION ALPHA is correct because it precisely describes the behaviour "
+            "in the given scenario, whereas the other options are either too broad "
+            "or describe unrelated mechanisms entirely."
+        )
+    )
+    # Should not raise — 'option alpha' (normalised) is in the explanation
+    validate_tutor_response(response)
+
+
+def test_validator_passes_existing_valid_response_end_to_end() -> None:
+    """
+    The _make_valid_response fixture (used by other tests) must continue to
+    pass all checks end-to-end after adding check 8.
+    """
+    response = _make_valid_response()
+    # Should not raise
+    validate_tutor_response(response)
+
+
+# ================================================================== #
+# 16–17  Validator — practice question quality
 # ================================================================== #
 
 

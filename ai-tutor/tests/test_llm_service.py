@@ -101,6 +101,7 @@ def _make_valid_tutor_response() -> TutorResponse:
             ],
             correct_option="A list of all population members reachable for a study",
             explanation=(
+                "The correct answer is 'A list of all population members reachable for a study'. "
                 "The sampling frame is the operational list from which the researcher "
                 "draws their actual sample, distinct from the broader population."
             ),

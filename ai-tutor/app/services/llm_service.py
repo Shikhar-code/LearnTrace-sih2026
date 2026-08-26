@@ -1,17 +1,32 @@
 """
-LLM Service — provider-agnostic abstraction layer.
+LLM Service -- provider-agnostic abstraction layer.
 
 Position in the pipeline
 ------------------------
 TutorService
-    ↓
-LLMService          ← this module
-    ↓
-GeminiProvider      (app/services/providers/gemini.py)
+    |
+LLMService          <- this module
+    |
+GeminiProvider      (app/services/providers/gemini.py)   <- primary
+    | (on recoverable provider failure only)
+GroqProvider        (app/services/providers/groq.py)     <- fallback
 
 LLMService accepts prepared prompts and returns a TutorResponse.
 It knows which provider to use from configuration but does not
-contain any Gemini-specific code itself.
+contain any Gemini-specific or Groq-specific code itself.
+
+Fallback behaviour
+------------------
+- Gemini is tried first (primary provider).
+- If Gemini raises LLMProviderError (rate limit, timeout, transient
+  network error), Groq is tried as the fallback.
+- LLMMisconfiguredError from either provider propagates immediately
+  (misconfiguration is not a transient failure).
+- LLMResponseError (malformed output) triggers the retry loop inside
+  generate(), NOT the provider fallback.  Validation problems are
+  separate from provider availability problems.
+- If both Gemini and Groq fail with LLMProviderError, a clean
+  application-level LLMProviderError is raised.
 
 Adding a new provider in the future requires only:
 1. Implementing a new provider module under app/services/providers/.
@@ -46,6 +61,7 @@ class LLMService:
 
     Handles:
     - Provider selection and delegation.
+    - Primary -> fallback provider transition on recoverable failures.
     - One controlled retry on malformed response.
     - Response validation.
     """
@@ -118,7 +134,7 @@ class LLMService:
                 break
 
             except (LLMProviderError, LLMMisconfiguredError):
-                # Do not retry provider/config errors — they won't self-heal.
+                # Do not retry provider/config errors -- they won't self-heal.
                 raise
 
         raise LLMResponseError(
@@ -134,19 +150,69 @@ class LLMService:
         self, system_prompt: str, user_prompt: str
     ) -> TutorResponse:
         """
-        Route the request to the appropriate provider.
+        Route the request to the configured primary provider.
 
-        Currently only Gemini is supported.  New providers can be added
-        here without changing any other layer.
+        LLM_PROVIDER=gemini (default):
+            Calls Gemini; falls back to Groq on LLMProviderError.
+        LLM_PROVIDER=groq:
+            Calls Groq directly; Gemini is never involved.
+
+        Fallback is triggered only by LLMProviderError (rate limit, timeout,
+        transient network/API errors).  LLMMisconfiguredError propagates
+        immediately -- a missing API key is not a transient condition.
+        LLMResponseError (malformed output) is handled by the retry loop in
+        generate(), not here.
         """
-        provider_name = settings.LLM_PROVIDER.lower() or "gemini"
+        provider_name = (settings.LLM_PROVIDER or "gemini").lower()
 
         if provider_name == "gemini":
-            from app.services.providers.gemini import call_gemini
+            return self._call_with_fallback(system_prompt, user_prompt)
 
-            return call_gemini(system_prompt, user_prompt)
+        if provider_name == "groq":
+            from app.services.providers.groq import call_groq
+
+            logger.info("Primary LLM provider: Groq")
+            return call_groq(system_prompt, user_prompt)
 
         raise LLMMisconfiguredError(
             f"Unknown LLM provider '{provider_name}'. "
-            "Set LLM_PROVIDER=gemini in your .env file."
+            "Set LLM_PROVIDER=gemini or LLM_PROVIDER=groq in your .env file."
         )
+
+    def _call_with_fallback(
+        self, system_prompt: str, user_prompt: str
+    ) -> TutorResponse:
+        """
+        Try Gemini (primary); on LLMProviderError fall back to Groq.
+
+        LLMMisconfiguredError from Gemini propagates immediately.
+        If both fail, raises a clean LLMProviderError.
+        """
+        from app.services.providers.gemini import call_gemini
+        from app.services.providers.groq import call_groq
+
+        # Primary: Gemini
+        logger.info("Primary LLM provider: Gemini")
+        try:
+            return call_gemini(system_prompt, user_prompt)
+        except LLMProviderError as primary_exc:
+            logger.warning(
+                "Primary provider failed, attempting fallback: Groq. Reason: %s",
+                primary_exc,
+            )
+        # LLMMisconfiguredError is intentionally NOT caught here -- it
+        # propagates up so the caller receives a 503, not a 502.
+
+        # Fallback: Groq
+        try:
+            result = call_groq(system_prompt, user_prompt)
+            logger.info("Fallback provider succeeded: Groq")
+            return result
+        except (LLMProviderError, LLMMisconfiguredError) as fallback_exc:
+            logger.error(
+                "Primary and fallback providers failed. Groq error: %s",
+                type(fallback_exc).__name__,
+            )
+            raise LLMProviderError(
+                "Both primary (Gemini) and fallback (Groq) providers failed."
+            ) from fallback_exc
