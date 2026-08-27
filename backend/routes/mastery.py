@@ -70,6 +70,7 @@ def get_mastery_input(
             {
                 "response_id": response.id,
                 "question_id": response.question_id,
+                "selected_option_id": response.selected_option_id,
                 "topic_id": topic.id,
                 "topic": topic.title,
                 "chapter_id": chapter.id if chapter else None,

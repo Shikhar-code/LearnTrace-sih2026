@@ -92,11 +92,14 @@ def validate_questions(
 ) -> list[dict[str, Any]]:
     questions = data["questions"]
 
-    if len(questions) != expected_count:
+    if not questions or len(questions) < expected_count:
         raise QuizGenerationError(
             f"Expected {expected_count} questions, "
-            f"but received {len(questions)}."
+            f"but received only {len(questions)}."
         )
+
+    # Take the exact expected number of questions
+    questions = questions[:expected_count]
 
     validated = []
 
@@ -237,7 +240,7 @@ Requested difficulty:
 Number of questions:
 {number_of_questions}
 
-Generate exactly {number_of_questions} MCQs.
+CRITICAL: You MUST generate EXACTLY {number_of_questions} distinct multiple-choice question objects in the "questions" array.
 
 Each MCQ must contain exactly:
 - question_text
@@ -253,9 +256,8 @@ Exactly ONE option must have:
 The other THREE options must have:
 "is_correct": false
 
-Return ONLY valid JSON.
-Do NOT use markdown.
-Do NOT wrap the JSON in ```.
+Return ONLY valid JSON matching the exact schema below.
+Do NOT use markdown fences or extra commentary.
 
 Required JSON structure:
 
@@ -305,6 +307,7 @@ def generate_with_gemini(prompt: str) -> dict[str, Any]:
         config={
             "temperature": 0.2,
             "response_mime_type": "application/json",
+            "max_output_tokens": 4096,
         },
     )
 
@@ -341,6 +344,7 @@ def generate_with_groq(prompt: str) -> dict[str, Any]:
         response_format={
             "type": "json_object"
         },
+        max_tokens=4096,
     )
 
     content = response.choices[0].message.content
@@ -497,7 +501,7 @@ def generate_and_save_quiz(
             DocumentChunk.document_id,
             DocumentChunk.chunk_index,
         )
-        .limit(20)
+        .limit(6)
         .all()
     )
 

@@ -101,6 +101,7 @@ export interface AssessmentQuestion {
   options: {
     id: number;
     option_text: string;
+    is_correct?: boolean;
   }[];
 }
 
@@ -173,6 +174,7 @@ export interface FinishAttemptResponse {
 export interface MasteryResponseItem {
   response_id: number;
   question_id: number;
+  selected_option_id?: number | null;
   topic_id: number;
   topic: string;
   chapter_id: number | null;
@@ -204,6 +206,44 @@ export interface TopicMasteryAgg {
   accuracy: number;
   avg_time_seconds: number;
   status: "Mastered" | "Developing" | "Needs Review";
+}
+
+// AI Tutor Types
+export interface TutorCompetency {
+  id: string;
+  name: string;
+}
+
+export interface TutorQuestion {
+  id: string;
+  text: string;
+  options: string[];
+}
+
+export interface TutorDetectedGap {
+  description: string;
+}
+
+export interface TutorContext {
+  competency: TutorCompetency;
+  question: TutorQuestion;
+  learner_answer: string;
+  correct_answer: string;
+  detected_gap?: TutorDetectedGap | null;
+}
+
+export interface TutorPracticeQuestion {
+  question: string;
+  options: string[];
+  correct_option: string;
+  explanation: string;
+}
+
+export interface TutorResponse {
+  explanation: string;
+  simple_explanation: string;
+  worked_example: string;
+  practice_question: TutorPracticeQuestion;
 }
 
 // Re-export Intelligence Engine Types and Schemas

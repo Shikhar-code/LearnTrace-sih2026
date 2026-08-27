@@ -5,6 +5,7 @@ import { CurriculumExplorer } from "./pages/Curriculum/CurriculumExplorer";
 import { QuizRunner } from "./pages/Assessment/QuizRunner";
 import { MasteryDashboard } from "./pages/Mastery/MasteryDashboard";
 import { KnowledgeGraphExplorer } from "./pages/KnowledgeGraph/KnowledgeGraphExplorer";
+import { AiTutor } from "./pages/Tutor/AiTutor";
 import { PdfIngestion } from "./pages/Ingestion/PdfIngestion";
 import { DocumentCatalogue } from "./pages/Admin/DocumentCatalogue";
 import { CohortHeatmap } from "./pages/Admin/CohortHeatmap";
@@ -24,6 +25,7 @@ export function App() {
           />
           <Route path="/quiz" element={<QuizRunner />} />
           <Route path="/mastery" element={<MasteryDashboard />} />
+          <Route path="/tutor" element={<AiTutor />} />
         </Route>
 
         {/* Admin Routes Layout */}

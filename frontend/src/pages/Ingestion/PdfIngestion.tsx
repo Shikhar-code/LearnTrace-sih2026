@@ -72,8 +72,15 @@ export const PdfIngestion: React.FC = () => {
     try {
       const docs = await documentsApi.getCatalogue(classLevel);
       setDocuments(docs);
-      if (docs.length > 0 && !selectedDocument) {
-        setSelectedDocument(docs[0]);
+      if (docs.length > 0) {
+        // Prefer first processed document or current selection
+        setSelectedDocument((prev) => {
+          if (prev) {
+            const updated = docs.find((d) => d.id === prev.id);
+            if (updated) return updated;
+          }
+          return docs.find((d) => d.status === 'processed') || docs[0];
+        });
       }
     } catch (err) {
       setErrorMessage(getApiErrorMessage(err));
@@ -204,7 +211,12 @@ export const PdfIngestion: React.FC = () => {
       );
       setFile(null);
       setUploadChapterTitle('');
-      await loadCatalogue(filterClass);
+      const updatedDocs = await documentsApi.getCatalogue(filterClass);
+      setDocuments(updatedDocs);
+      const newDoc = updatedDocs.find((d) => d.id === res.document_id);
+      if (newDoc) {
+        setSelectedDocument(newDoc);
+      }
     } catch (err) {
       setErrorMessage(getApiErrorMessage(err));
     } finally {
@@ -529,16 +541,40 @@ export const PdfIngestion: React.FC = () => {
       {/* Chunk Viewer & Bulk Topic Mapper Section */}
       <div className="bg-white rounded-xl border border-stone-200/80 shadow-xs p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
               <FileText className="w-4 h-4 text-teal-800" />
               <h2 className="text-sm font-bold text-stone-900 uppercase tracking-wide">
-                Document Chunks {selectedDocument && `for "${selectedDocument.title}"`}
+                Document Chunks
               </h2>
+              {selectedDocument && (
+                <Badge
+                  variant={selectedDocument.status === 'processed' ? 'emerald' : 'amber'}
+                  size="sm"
+                >
+                  {selectedDocument.status} ({chunks.length} chunks)
+                </Badge>
+              )}
             </div>
-            <p className="text-xs text-stone-500 mt-0.5">
-              Select chunks and assign them to specific syllabus topics for precise pedagogical mastery tracking.
-            </p>
+            
+            {/* Quick Document Switcher */}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-xs font-semibold text-stone-600">Viewing Source:</span>
+              <select
+                value={selectedDocument?.id ?? ''}
+                onChange={(e) => {
+                  const doc = documents.find((d) => d.id === Number(e.target.value));
+                  if (doc) setSelectedDocument(doc);
+                }}
+                className="px-2.5 py-1 bg-stone-100 border border-stone-300 rounded-lg text-xs font-medium text-stone-900 focus:bg-white max-w-xs truncate"
+              >
+                {documents.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    #{d.id} - {d.title} ({d.status})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Search & Status Filter */}

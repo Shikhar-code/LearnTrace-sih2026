@@ -65,7 +65,6 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
   const [modalChapterId, setModalChapterId] = useState<number | null>(null);
   const [modalTopics, setModalTopics] = useState<Topic[]>([]);
   const [modalTopicId, setModalTopicId] = useState<number | null>(null);
-  const [modalQuestionCount, setModalQuestionCount] = useState<number>(5);
   const [modalDifficulty, setModalDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [modalDuration, setModalDuration] = useState<number>(10);
   const [isGeneratingAiQuiz, setIsGeneratingAiQuiz] = useState<boolean>(false);
@@ -222,7 +221,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
     loadAssessment(assessmentIdInput);
   };
 
-  // Handle AI Quiz Generation from Modal
+  // Handle AI Quiz Generation from Modal & Auto-Launch
   const handleGenerateAiQuizFromModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalTopicId) {
@@ -233,22 +232,34 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
     setIsGeneratingAiQuiz(true);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setFinishedResult(null);
 
     try {
+      // 1. Generate Quiz via Backend RAG & LLM (Fixed 10 standard questions)
       const res = await aiQuizApi.generateQuiz({
         topic_id: modalTopicId,
-        number_of_questions: modalQuestionCount,
+        number_of_questions: 10,
         difficulty: modalDifficulty,
         duration_minutes: modalDuration,
       });
 
-      setShowAiModal(false);
+      // 2. Fetch the newly created Assessment
+      const fetchedAssessment = await assessmentApi.getAssessment(res.assessment_id);
+      setAssessment(fetchedAssessment);
       setAssessmentIdInput(res.assessment_id);
       setSearchParams({ assessment_id: res.assessment_id.toString() });
+
+      // 3. Auto-start the attempt immediately
+      const startRes = await assessmentApi.startAttempt(res.assessment_id, 1);
+      setAttempt(startRes);
+      setCurrentQuestionIndex(0);
+      setSelectedOptionId(null);
+      setQuestionTimeSeconds(0);
+
+      setShowAiModal(false);
       setSuccessMessage(
-        `AI Quiz "${res.title}" generated successfully! (${res.questions_created} NCERT questions)`
+        `AI Quiz "${res.title}" generated! Quiz session started automatically.`
       );
-      await loadAssessment(res.assessment_id);
     } catch (err) {
       setErrorMessage(getApiErrorMessage(err));
     } finally {
@@ -350,6 +361,16 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
               </button>
             </div>
 
+            {/* In-Modal Error Alert */}
+            {errorMessage && (
+              <AlertBanner
+                type="error"
+                title="Generation Notice"
+                message={errorMessage}
+                onClose={() => setErrorMessage(null)}
+              />
+            )}
+
             <form onSubmit={handleGenerateAiQuizFromModal} className="space-y-4 text-xs">
               {/* Grade & Subject */}
               <div className="grid grid-cols-2 gap-3">
@@ -411,21 +432,8 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
                 </select>
               </div>
 
-              {/* Question Parameters */}
-              <div className="grid grid-cols-3 gap-3 pt-1">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Question Count</label>
-                  <select
-                    value={modalQuestionCount}
-                    onChange={(e) => setModalQuestionCount(Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900"
-                  >
-                    <option value={3}>3 Questions</option>
-                    <option value={5}>5 Questions</option>
-                    <option value={10}>10 Questions</option>
-                  </select>
-                </div>
-
+              {/* Question Parameters (Fixed to 10 Standard Questions) */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
                 <div>
                   <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Difficulty</label>
                   <select
@@ -446,11 +454,17 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
                     onChange={(e) => setModalDuration(Number(e.target.value))}
                     className="w-full px-2.5 py-1.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900"
                   >
-                    <option value={5}>5 Mins</option>
                     <option value={10}>10 Mins</option>
                     <option value={15}>15 Mins</option>
+                    <option value={20}>20 Mins</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Assessment Standard Info Pill */}
+              <div className="bg-stone-50 border border-stone-200/80 rounded-lg p-2.5 text-[11px] text-stone-600 flex items-center justify-between">
+                <span>Assessment Structure:</span>
+                <span className="font-semibold text-stone-800">10 MCQs (4 options, 1 correct)</span>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-3 border-t border-stone-100">
@@ -474,7 +488,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
                   ) : (
                     <>
                       <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
-                      <span>Generate & Launch Quiz</span>
+                      <span>Generate & Start Quiz Now</span>
                     </>
                   )}
                 </button>
@@ -556,6 +570,16 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
 
           {/* Navigation Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 border-t border-stone-100">
+            <button
+              onClick={() => {
+                navigate(`/tutor?attempt_id=${finishedResult.attempt_id}`);
+              }}
+              className="w-full sm:w-auto px-5 py-2.5 bg-stone-900 text-white rounded-lg font-medium text-xs hover:bg-stone-800 transition-all flex items-center justify-center gap-2 shadow-xs"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
+              <span>Review Mistakes with AI Tutor</span>
+            </button>
+
             <button
               onClick={() => {
                 if (onNavigateToMastery) {

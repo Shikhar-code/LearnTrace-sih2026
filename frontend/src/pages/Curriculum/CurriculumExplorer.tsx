@@ -46,9 +46,10 @@ export const CurriculumExplorer: React.FC = () => {
     setErrorMessage(null);
     try {
       const data = await academicApi.getClasses();
-      setClasses(data);
-      if (data.length > 0) {
-        const defaultClass = data.find((c) => c.class_level === 10) || data[0];
+      const filtered = data.filter((c) => c.class_level === 9 || c.class_level === 10);
+      setClasses(filtered);
+      if (filtered.length > 0) {
+        const defaultClass = filtered.find((c) => c.class_level === 10) || filtered[0];
         setSelectedClassLevel(defaultClass.class_level);
       }
     } catch (err) {

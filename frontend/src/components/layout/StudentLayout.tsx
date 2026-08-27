@@ -6,6 +6,7 @@ import {
   BarChart3,
   GitFork,
   GraduationCap,
+  Sparkles,
   Layers,
   Shield,
   User,
@@ -64,6 +65,12 @@ export const StudentLayout: React.FC = () => {
       icon: BarChart3,
       badge: "Engine",
     },
+    {
+      to: "/tutor",
+      label: "AI Tutor",
+      icon: Sparkles,
+      badge: "Socratic",
+    },
   ];
 
   const getPageTitle = () => {
@@ -74,6 +81,7 @@ export const StudentLayout: React.FC = () => {
       return "Knowledge Graph Explorer";
     if (location.pathname.startsWith("/quiz")) return "Quiz Runner";
     if (location.pathname.startsWith("/mastery")) return "Mastery Analytics";
+    if (location.pathname.startsWith("/tutor")) return "AI Socratic Tutor";
     return "Curriculum Explorer";
   };
 

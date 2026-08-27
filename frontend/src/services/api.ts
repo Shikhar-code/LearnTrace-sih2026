@@ -25,6 +25,8 @@ import {
   AdminHeatmapPayload,
   LEARNTRACE_FRONTEND_SCHEMA_V1,
   LEARNTRACE_ADMIN_HEATMAP_SCHEMA_V1,
+  TutorContext,
+  TutorResponse,
 } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -224,6 +226,9 @@ export const aiQuizApi = {
     const response = await apiClient.post<GenerateQuizResponse>(
       "/ai-quizzes/generate",
       payload,
+      {
+        timeout: 90000, // 90 seconds to allow full LLM generation & DB persistence
+      },
     );
     return response.data;
   },
@@ -352,5 +357,42 @@ export const systemApi = {
     } catch {
       return false;
     }
+  },
+};
+
+// AI Tutor Service Endpoints (Dedicated Service)
+const TUTOR_API_BASE_URL = import.meta.env.VITE_TUTOR_API_BASE_URL || "/tutor-api";
+
+export const tutorClient = axios.create({
+  baseURL: TUTOR_API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 60000,
+});
+
+export const tutorApi = {
+  /**
+   * Check if the AI Tutor microservice is alive.
+   */
+  checkHealth: async (): Promise<boolean> => {
+    try {
+      const response = await tutorClient.get("/health", { timeout: 3000 });
+      return response.data?.status === "ok";
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Request targeted AI tutoring explanation, ELI5 concept, worked example, and practice question.
+   */
+  explainMistake: async (context: TutorContext): Promise<TutorResponse> => {
+    const response = await tutorClient.post<TutorResponse>(
+      "/api/v1/tutor/explain",
+      context,
+      { timeout: 60000 },
+    );
+    return response.data;
   },
 };

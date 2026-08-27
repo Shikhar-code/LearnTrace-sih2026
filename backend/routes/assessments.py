@@ -180,6 +180,7 @@ def get_assessment(
                     {
                         "id": option.id,
                         "option_text": option.option_text,
+                        "is_correct": option.is_correct,
                     }
                     for option in item.question.options
                 ],
