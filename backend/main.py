@@ -79,3 +79,6 @@ def database_test():
             "status": "error",
             "message": str(e)
         }
+from routes.ai_quizzes import router as ai_quizzes_router
+
+app.include_router(ai_quizzes_router)
