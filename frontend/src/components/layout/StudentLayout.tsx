@@ -182,7 +182,7 @@ export const StudentLayout: React.FC = () => {
       </div>
 
       {/* Persistent Fixed Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 bg-[#FBFBFA] border-r border-stone-200 flex-col flex-shrink-0 h-screen sticky top-0 z-30">
+      <aside className="hidden md:flex md:w-64 bg-[#FBFBFA] border-r border-stone-200 flex-col flex-shrink-0 h-screen sticky top-0 z-50">
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center gap-3 border-b border-stone-200 flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-teal-800 flex items-center justify-center text-white shadow-xs">
@@ -263,7 +263,7 @@ export const StudentLayout: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         {/* Fixed Sticky Top Navbar */}
-        <header className="h-16 bg-[#FBFBFA]/95 backdrop-blur border-b border-stone-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 flex-shrink-0">
+        <header className="h-16 bg-[#FBFBFA]/95 backdrop-blur border-b border-stone-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Hamburger Button on Mobile */}
             <button

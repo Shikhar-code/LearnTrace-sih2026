@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   FileText,
   FolderOpen,
@@ -11,9 +11,10 @@ import {
   Database,
   Menu,
   X,
-} from 'lucide-react';
-import { systemApi } from '../../services/api';
-import { Badge } from '../common/Badge';
+  Grid,
+} from "lucide-react";
+import { systemApi } from "../../services/api";
+import { Badge } from "../common/Badge";
 
 export const AdminLayout: React.FC = () => {
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
@@ -38,22 +39,31 @@ export const AdminLayout: React.FC = () => {
 
   const navItems = [
     {
-      to: '/admin/ingest',
-      label: 'PDF Ingestion & Chunks',
+      to: "/admin/ingest",
+      label: "PDF Ingestion & Chunks",
       icon: FileText,
-      badge: 'Mapper',
+      badge: "Mapper",
     },
     {
-      to: '/admin/catalogue',
-      label: 'Document Catalogue',
+      to: "/admin/catalogue",
+      label: "Document Catalogue",
       icon: FolderOpen,
-      badge: 'NCERT',
+      badge: "NCERT",
+    },
+    {
+      to: "/admin/heatmap",
+      label: "Cohort Mastery Heatmap",
+      icon: Grid,
+      badge: "Matrix",
     },
   ];
 
   const getPageTitle = () => {
-    if (location.pathname.startsWith('/admin/catalogue')) return 'Document Catalogue';
-    return 'PDF Ingestion & Mapper';
+    if (location.pathname.startsWith("/admin/catalogue"))
+      return "Document Catalogue";
+    if (location.pathname.startsWith("/admin/heatmap"))
+      return "Cohort Mastery Heatmap";
+    return "PDF Ingestion & Mapper";
   };
 
   return (
@@ -69,7 +79,7 @@ export const AdminLayout: React.FC = () => {
       {/* Mobile Slide-Over Drawer */}
       <div
         className={`fixed inset-y-0 left-0 w-72 bg-[#FBFBFA] z-50 shadow-2xl flex flex-col md:hidden transform transition-transform duration-300 ease-in-out border-r border-stone-200 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Drawer Header */}
@@ -111,13 +121,13 @@ export const AdminLayout: React.FC = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-stone-200/80 text-stone-900 font-semibold'
-                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                    ? "bg-stone-200/80 text-stone-900 font-semibold"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Icon
-                    className={`w-4 h-4 ${isActive ? 'text-stone-900' : 'text-stone-400'}`}
+                    className={`w-4 h-4 ${isActive ? "text-stone-900" : "text-stone-400"}`}
                   />
                   <span>{item.label}</span>
                 </div>
@@ -125,8 +135,8 @@ export const AdminLayout: React.FC = () => {
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
                       isActive
-                        ? 'bg-stone-300/80 text-stone-800'
-                        : 'bg-stone-100 text-stone-500'
+                        ? "bg-stone-300/80 text-stone-800"
+                        : "bg-stone-100 text-stone-500"
                     }`}
                   >
                     {item.badge}
@@ -145,7 +155,8 @@ export const AdminLayout: React.FC = () => {
               <span>Admin Mode</span>
             </div>
             <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
-              Upload NCERT chapters, manage extracted chunks, and configure syllabus topics.
+              Upload NCERT chapters, manage extracted chunks, and configure
+              syllabus topics.
             </p>
           </div>
 
@@ -161,7 +172,7 @@ export const AdminLayout: React.FC = () => {
       </div>
 
       {/* Persistent Fixed Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 bg-[#FBFBFA] border-r border-stone-200 flex-col flex-shrink-0 h-screen sticky top-0 z-30">
+      <aside className="hidden md:flex md:w-64 bg-[#FBFBFA] border-r border-stone-200 flex-col flex-shrink-0 h-screen sticky top-0 z-50">
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-stone-200 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -193,13 +204,13 @@ export const AdminLayout: React.FC = () => {
                 to={item.to}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-stone-200/70 text-stone-900 font-semibold'
-                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                    ? "bg-stone-200/70 text-stone-900 font-semibold"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Icon
-                    className={`w-4 h-4 ${isActive ? 'text-stone-900' : 'text-stone-400'}`}
+                    className={`w-4 h-4 ${isActive ? "text-stone-900" : "text-stone-400"}`}
                   />
                   <span>{item.label}</span>
                 </div>
@@ -207,8 +218,8 @@ export const AdminLayout: React.FC = () => {
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
                       isActive
-                        ? 'bg-stone-300/80 text-stone-800'
-                        : 'bg-stone-100 text-stone-500'
+                        ? "bg-stone-300/80 text-stone-800"
+                        : "bg-stone-100 text-stone-500"
                     }`}
                   >
                     {item.badge}
@@ -227,7 +238,8 @@ export const AdminLayout: React.FC = () => {
               <span>Admin Mode</span>
             </div>
             <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
-              Upload NCERT chapters, manage extracted chunks, and configure syllabus topics.
+              Upload NCERT chapters, manage extracted chunks, and configure
+              syllabus topics.
             </p>
           </div>
 
@@ -244,7 +256,7 @@ export const AdminLayout: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         {/* Fixed Sticky Admin Navbar */}
-        <header className="h-16 bg-[#FBFBFA]/95 backdrop-blur border-b border-stone-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 flex-shrink-0">
+        <header className="h-16 bg-[#FBFBFA]/95 backdrop-blur border-b border-stone-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Hamburger button on mobile */}
             <button
@@ -258,7 +270,9 @@ export const AdminLayout: React.FC = () => {
             <Badge variant="amber" size="sm" className="hidden sm:inline-flex">
               Admin Area
             </Badge>
-            <h2 className="text-sm sm:text-base font-semibold text-stone-900 truncate">{getPageTitle()}</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-stone-900 truncate">
+              {getPageTitle()}
+            </h2>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
@@ -288,8 +302,12 @@ export const AdminLayout: React.FC = () => {
                 <ShieldCheck className="w-3.5 h-3.5" />
               </div>
               <div className="hidden sm:block text-left">
-                <div className="text-xs font-medium text-stone-800">Curriculum Admin</div>
-                <div className="text-[10px] text-stone-400 font-mono">Staff</div>
+                <div className="text-xs font-medium text-stone-800">
+                  Curriculum Admin
+                </div>
+                <div className="text-[10px] text-stone-400 font-mono">
+                  Staff
+                </div>
               </div>
             </div>
           </div>

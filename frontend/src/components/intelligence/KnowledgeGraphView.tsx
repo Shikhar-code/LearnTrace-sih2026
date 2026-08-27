@@ -361,7 +361,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
 
   return (
     <div
-      className={`bg-white rounded-xl border border-stone-200/80 p-5 sm:p-6 shadow-xs space-y-5 ${className}`}
+      className={`bg-white rounded-xl border border-stone-200/80 p-5 sm:p-6 shadow-xs space-y-5 isolate relative z-0 ${className}`}
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
@@ -400,7 +400,7 @@ export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
         }`}
       >
         {/* Floating Zoom & Pan Controls Toolbar */}
-        <div className="sticky top-3 float-right mr-3 z-30 flex items-center gap-1 bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-md rounded-xl p-1 text-xs">
+        <div className="sticky top-3 float-right mr-3 z-20 flex items-center gap-1 bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-md rounded-xl p-1 text-xs">
           <div className="flex items-center gap-1 px-2 py-0.5 text-stone-400 font-mono text-[10px] hidden sm:flex border-r border-stone-200 mr-0.5">
             <Move className="w-3 h-3" />
             <span>Drag Pan</span>

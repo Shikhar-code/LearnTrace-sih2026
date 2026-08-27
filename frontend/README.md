@@ -18,14 +18,17 @@ React + TypeScript + Vite dashboard for **LearnTrace** — an AI-powered mastery
 Fixed persistent sidebar and sticky top navbar across all pages.
 
 ### Student Portal (`StudentLayout`)
+
 - **`/curriculum`**: NCERT curriculum hierarchy (`Class → Subject → Chapter → Topic`) & questions repository.
 - **`/knowledge-graph`**: Interactive prerequisite DAG with zoom/drag canvas, 500ms hover inspector, and in-page topic remediation paths.
 - **`/quiz`**: Interactive quiz runner with per-question latency tracking.
 - **`/mastery`**: Mastery analytics, Bayesian profile grid, and root-cause remediation traces.
 
 ### Admin Portal (`AdminLayout`)
+
 - **`/admin/ingest`**: PDF upload, chapter text extraction & chunk-to-topic bulk mapper.
 - **`/admin/catalogue`**: Source document repository with class and subject filters.
+- **`/admin/heatmap`**: Class & cohort mastery heatmap, root-cause bottleneck distribution, and intervention planning.
 
 ---
 
@@ -39,8 +42,7 @@ frontend/
 │   │   ├── intelligence/   # KnowledgeGraphView, LearningPathStepper, MasteryProfileGrid
 │   │   └── layout/         # StudentLayout, AdminLayout, Sidebar, Navbar
 │   ├── pages/
-│   │   ├── Admin/          # DocumentCatalogue
-│   │   ├── Assessment/     # QuizRunner
+│   │   ├── Admin/          # DocumentCatalogue, CohortHeatmap
 │   │   ├── Curriculum/     # CurriculumExplorer
 │   │   ├── Ingestion/      # PdfIngestion
 │   │   ├── KnowledgeGraph/ # KnowledgeGraphExplorer

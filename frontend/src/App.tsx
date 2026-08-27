@@ -7,6 +7,7 @@ import { MasteryDashboard } from "./pages/Mastery/MasteryDashboard";
 import { KnowledgeGraphExplorer } from "./pages/KnowledgeGraph/KnowledgeGraphExplorer";
 import { PdfIngestion } from "./pages/Ingestion/PdfIngestion";
 import { DocumentCatalogue } from "./pages/Admin/DocumentCatalogue";
+import { CohortHeatmap } from "./pages/Admin/CohortHeatmap";
 
 export function App() {
   return (
@@ -30,6 +31,7 @@ export function App() {
           <Route index element={<Navigate to="/admin/ingest" replace />} />
           <Route path="ingest" element={<PdfIngestion />} />
           <Route path="catalogue" element={<DocumentCatalogue />} />
+          <Route path="heatmap" element={<CohortHeatmap />} />
         </Route>
 
         {/* Fallback Catch-all Route */}

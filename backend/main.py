@@ -1,4 +1,4 @@
-git statusfrom fastapi import FastAPI
+from fastapi import FastAPI
 from sqlalchemy import text
 
 from core.database import Base, engine
