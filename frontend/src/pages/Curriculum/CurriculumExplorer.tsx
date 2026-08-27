@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { academicApi, assessmentApi, getApiErrorMessage } from '../../services/api';
-import { AcademicClass, Subject, Chapter, Topic, Question } from '../../types';
+import { academicApi, getApiErrorMessage } from '../../services/api';
+import { AcademicClass, Subject, Chapter, Topic } from '../../types';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { AlertBanner } from '../../components/common/AlertBanner';
-import { BookOpen, ChevronRight, FolderTree, HelpCircle, Plus, Sparkles } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronRight,
+  FolderTree,
+  Plus,
+  Sparkles,
+} from 'lucide-react';
 
 export const CurriculumExplorer: React.FC = () => {
   // State for Academic Hierarchy
@@ -20,10 +26,7 @@ export const CurriculumExplorer: React.FC = () => {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState<boolean>(false);
-
-  // Quick topic creation modal/form
+  // Quick topic creation form
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [creatingTopic, setCreatingTopic] = useState(false);
@@ -70,7 +73,6 @@ export const CurriculumExplorer: React.FC = () => {
     setSelectedChapter(null);
     setTopics([]);
     setSelectedTopic(null);
-    setQuestions([]);
     try {
       const data = await academicApi.getSubjects(classLevel);
       setSubjects(data);
@@ -96,7 +98,6 @@ export const CurriculumExplorer: React.FC = () => {
     setSelectedChapter(null);
     setTopics([]);
     setSelectedTopic(null);
-    setQuestions([]);
     try {
       const data = await academicApi.getChapters(subjectId);
       setChapters(data);
@@ -118,7 +119,6 @@ export const CurriculumExplorer: React.FC = () => {
     setErrorMessage(null);
     setTopics([]);
     setSelectedTopic(null);
-    setQuestions([]);
     try {
       const data = await academicApi.getTopics(chapterId);
       setTopics(data);
@@ -127,28 +127,6 @@ export const CurriculumExplorer: React.FC = () => {
       }
     } catch (err) {
       setErrorMessage(getApiErrorMessage(err));
-    }
-  };
-
-  // 5. Fetch questions whenever selectedTopic changes
-  useEffect(() => {
-    if (!selectedTopic) {
-      setQuestions([]);
-      return;
-    }
-    loadQuestions(selectedTopic.id);
-  }, [selectedTopic]);
-
-  const loadQuestions = async (topicId: number) => {
-    setLoadingQuestions(true);
-    try {
-      const data = await assessmentApi.getQuestionsByTopic(topicId);
-      setQuestions(data);
-    } catch (err) {
-      console.warn('Could not load questions for topic:', err);
-      setQuestions([]);
-    } finally {
-      setLoadingQuestions(false);
     }
   };
 
@@ -181,10 +159,10 @@ export const CurriculumExplorer: React.FC = () => {
               <FolderTree className="w-3.5 h-3.5" /> Academic Taxonomy
             </div>
             <h1 className="text-lg sm:text-xl font-bold text-stone-900 mt-1 tracking-tight">
-              Curriculum Explorer
+              Curriculum & Syllabus Explorer
             </h1>
             <p className="text-xs text-stone-600 mt-0.5">
-              Browse seeded NCERT content hierarchy across Classes, Subjects, Chapters, and Topics.
+              Browse official NCERT chapters and topics across classes and subjects.
             </p>
           </div>
 
@@ -220,13 +198,13 @@ export const CurriculumExplorer: React.FC = () => {
           {selectedChapter && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
-              <span className="font-semibold text-stone-800 truncate max-w-[150px] sm:max-w-xs">{selectedChapter.title}</span>
+              <span className="font-semibold text-stone-800 truncate max-w-[180px] sm:max-w-xs">{selectedChapter.title}</span>
             </>
           )}
           {selectedTopic && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
-              <Badge variant="teal" size="sm" className="truncate max-w-[150px] sm:max-w-xs">
+              <Badge variant="teal" size="sm" className="truncate max-w-[180px] sm:max-w-xs">
                 {selectedTopic.title}
               </Badge>
             </>
@@ -271,11 +249,11 @@ export const CurriculumExplorer: React.FC = () => {
         </div>
       )}
 
-      {/* Main 3-Column Hierarchy Grid - Stacked on Mobile, 3-Columns on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-        {/* Column 1: Chapters */}
-        <div className="lg:col-span-4 bg-white rounded-xl border border-stone-200/80 shadow-xs flex flex-col h-auto min-h-[280px] max-h-[420px] lg:h-[560px] lg:max-h-none">
-          <div className="p-3.5 sm:p-4 border-b border-stone-200 flex items-center justify-between">
+      {/* 2-Column Responsive Layout: Chapters (5 cols) & Topics (7 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        {/* Column 1: Chapters (5 cols) */}
+        <div className="lg:col-span-5 bg-white rounded-xl border border-stone-200/80 shadow-xs flex flex-col h-auto min-h-[300px] max-h-[480px] lg:h-[620px] lg:max-h-none">
+          <div className="p-4 border-b border-stone-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-teal-800" />
               <h2 className="font-semibold text-xs text-stone-900 uppercase tracking-wide">
@@ -289,11 +267,11 @@ export const CurriculumExplorer: React.FC = () => {
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-1.5">
+          <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
             {loading ? (
               <LoadingSpinner label="Loading chapters..." />
             ) : chapters.length === 0 ? (
-              <div className="text-center py-10 text-stone-400 text-xs">
+              <div className="text-center py-12 text-stone-400 text-xs">
                 No chapters found for this subject.
               </div>
             ) : (
@@ -303,7 +281,7 @@ export const CurriculumExplorer: React.FC = () => {
                   <button
                     key={chapter.id}
                     onClick={() => setSelectedChapter(chapter)}
-                    className={`w-full text-left p-2.5 sm:p-3 rounded-lg border text-xs transition-all flex items-start gap-2.5 ${
+                    className={`w-full text-left p-3 rounded-lg border text-xs transition-all flex items-start gap-3 ${
                       isSelected
                         ? 'bg-stone-100 border-stone-400 text-stone-900 font-semibold shadow-2xs'
                         : 'bg-white border-stone-200/70 text-stone-700 hover:bg-stone-50 hover:border-stone-300'
@@ -326,30 +304,31 @@ export const CurriculumExplorer: React.FC = () => {
           </div>
         </div>
 
-        {/* Column 2: Topics in Chapter */}
-        <div className="lg:col-span-4 bg-white rounded-xl border border-stone-200/80 shadow-xs flex flex-col h-auto min-h-[280px] max-h-[420px] lg:h-[560px] lg:max-h-none">
-          <div className="p-3.5 sm:p-4 border-b border-stone-200 flex items-center justify-between">
+        {/* Column 2: Topics in Chapter (7 cols) */}
+        <div className="lg:col-span-7 bg-white rounded-xl border border-stone-200/80 shadow-xs flex flex-col h-auto min-h-[300px] max-h-[480px] lg:h-[620px] lg:max-h-none">
+          <div className="p-4 border-b border-stone-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-700" />
               <h2 className="font-semibold text-xs text-stone-900 uppercase tracking-wide">
-                Topics ({topics.length})
+                Topics {selectedChapter && `in "${selectedChapter.title}"`} ({topics.length})
               </h2>
             </div>
+            
             {selectedChapter && (
               <button
                 onClick={() => setIsAddingTopic(!isAddingTopic)}
-                className="text-xs font-semibold text-teal-800 hover:text-teal-900 flex items-center gap-1"
+                className="text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-lg border border-stone-200 flex items-center gap-1 transition-all"
               >
-                <Plus className="w-3.5 h-3.5" /> New Topic
+                <Plus className="w-3.5 h-3.5" /> Add Topic
               </button>
             )}
           </div>
 
           {/* Inline Add Topic Form */}
           {isAddingTopic && selectedChapter && (
-            <form onSubmit={handleCreateTopic} className="p-3 bg-stone-50 border-b border-stone-200">
+            <form onSubmit={handleCreateTopic} className="p-3.5 bg-stone-50 border-b border-stone-200">
               <label className="text-[11px] font-semibold text-stone-800 block mb-1">
-                Add Topic to "{selectedChapter.title}"
+                Add New Topic to "{selectedChapter.title}"
               </label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
@@ -357,143 +336,67 @@ export const CurriculumExplorer: React.FC = () => {
                   placeholder="e.g. Fundamental Theorem of Arithmetic"
                   value={newTopicTitle}
                   onChange={(e) => setNewTopicTitle(e.target.value)}
-                  className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-700"
+                  className="flex-1 px-3 py-1.5 text-xs bg-white border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-700"
                   required
                 />
                 <button
                   type="submit"
                   disabled={creatingTopic || !newTopicTitle.trim()}
-                  className="px-3 py-1.5 bg-teal-800 text-white rounded-md text-xs font-medium hover:bg-teal-900 disabled:opacity-50"
+                  className="px-3.5 py-1.5 bg-teal-800 text-white rounded-md text-xs font-medium hover:bg-teal-900 disabled:opacity-50"
                 >
-                  {creatingTopic ? 'Adding...' : 'Save'}
+                  {creatingTopic ? 'Adding...' : 'Save Topic'}
                 </button>
               </div>
             </form>
           )}
 
-          <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-1.5">
+          {/* Topics List */}
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">
             {!selectedChapter ? (
-              <div className="text-center py-10 text-stone-400 text-xs">
-                Select a chapter to view its topics.
+              <div className="text-center py-16 text-stone-400 text-xs">
+                Select a chapter from the left to explore its topics.
               </div>
             ) : topics.length === 0 ? (
-              <div className="text-center py-10 text-stone-400 text-xs">
-                No topics found in this chapter yet.
+              <div className="text-center py-16 text-stone-400 text-xs">
+                No topics found in this chapter yet. Click <strong>"Add Topic"</strong> above to create one.
               </div>
             ) : (
               topics.map((topic, idx) => {
                 const isSelected = selectedTopic?.id === topic.id;
                 return (
-                  <button
+                  <div
                     key={topic.id}
                     onClick={() => setSelectedTopic(topic)}
-                    className={`w-full text-left p-2.5 sm:p-3 rounded-lg border text-xs transition-all flex items-start gap-2.5 ${
+                    className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between gap-3 ${
                       isSelected
-                        ? 'bg-teal-50/80 border-teal-300 text-teal-950 font-semibold shadow-2xs'
-                        : 'bg-white border-stone-200/70 text-stone-700 hover:bg-stone-50 hover:border-stone-300'
+                        ? 'bg-teal-50/80 border-teal-400 text-teal-950 ring-1 ring-teal-300 shadow-2xs'
+                        : 'bg-white border-stone-200/80 text-stone-700 hover:bg-stone-50 hover:border-stone-300'
                     }`}
                   >
-                    <span
-                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono flex-shrink-0 ${
-                        isSelected ? 'bg-teal-800 text-white' : 'bg-stone-100 text-stone-500'
-                      }`}
-                    >
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 leading-snug">
-                      <div className="text-stone-900">{topic.title}</div>
-                      <div className="text-[10px] text-stone-400 font-mono mt-0.5">
-                        topic_id: {topic.id}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Column 3: Topic Questions */}
-        <div className="lg:col-span-4 bg-white rounded-xl border border-stone-200/80 shadow-xs flex flex-col h-auto min-h-[280px] max-h-[480px] lg:h-[560px] lg:max-h-none">
-          <div className="p-3.5 sm:p-4 border-b border-stone-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-teal-800" />
-              <h2 className="font-semibold text-xs text-stone-900 uppercase tracking-wide">
-                Topic Questions ({questions.length})
-              </h2>
-            </div>
-            {selectedTopic && (
-              <Badge variant="teal" size="sm">
-                ID #{selectedTopic.id}
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
-            {!selectedTopic ? (
-              <div className="text-center py-10 text-stone-400 text-xs">
-                Select a topic to inspect associated questions and learning items.
-              </div>
-            ) : loadingQuestions ? (
-              <LoadingSpinner label="Loading topic questions..." />
-            ) : questions.length === 0 ? (
-              <div className="p-4 bg-stone-50 rounded-lg border border-stone-200 text-center">
-                <p className="text-xs text-stone-700 font-medium">No Questions Ingested Yet</p>
-                <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
-                  You can map document chunks to this topic in the Admin Ingestion portal.
-                </p>
-              </div>
-            ) : (
-              questions.map((q, idx) => (
-                <div
-                  key={q.id}
-                  className="p-3 sm:p-3.5 rounded-lg border border-stone-200/80 bg-stone-50/50 text-xs space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-teal-800 font-mono">Q{idx + 1}</span>
-                    <Badge
-                      variant={
-                        q.difficulty === 'hard'
-                          ? 'rose'
-                          : q.difficulty === 'medium'
-                          ? 'amber'
-                          : 'emerald'
-                      }
-                      size="sm"
-                    >
-                      {q.difficulty}
-                    </Badge>
-                  </div>
-                  <p className="text-stone-900 font-medium leading-relaxed">{q.question_text}</p>
-                  <div className="space-y-1 pt-1">
-                    {(q.options || []).map((opt, oIdx) => (
-                      <div
-                        key={opt.id}
-                        className={`px-2.5 py-1 rounded border text-[11px] flex items-center justify-between gap-2 ${
-                          opt.is_correct
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-medium'
-                            : 'bg-white border-stone-200 text-stone-700'
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold font-mono flex-shrink-0 ${
+                          isSelected ? 'bg-teal-800 text-white' : 'bg-stone-100 text-stone-600'
                         }`}
                       >
-                        <span className="break-words flex-1">
-                          {String.fromCharCode(65 + oIdx)}. {opt.option_text}
-                        </span>
-                        {opt.is_correct && (
-                          <span className="text-[10px] text-emerald-700 font-semibold uppercase flex-shrink-0">
-                            Correct
-                          </span>
-                        )}
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <div className="text-stone-900 font-bold text-xs sm:text-sm">
+                          {topic.title}
+                        </div>
+                        <div className="text-[11px] text-stone-400 font-mono mt-0.5">
+                          topic_id: #{topic.id} • {selectedChapter.title}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                  {q.explanation && (
-                    <div className="text-[11px] text-stone-600 bg-white p-2 rounded border border-stone-200/60 mt-2 break-words">
-                      <span className="font-semibold text-stone-800">Explanation: </span>
-                      {q.explanation}
                     </div>
-                  )}
-                </div>
-              ))
+
+                    <Badge variant={isSelected ? "teal" : "stone"} size="sm">
+                      Topic #{topic.id}
+                    </Badge>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

@@ -114,6 +114,24 @@ export interface Assessment {
   questions: AssessmentQuestion[];
 }
 
+// AI Quiz Generation Types
+export interface GenerateQuizRequest {
+  topic_id: number;
+  number_of_questions?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  duration_minutes?: number;
+}
+
+export interface GenerateQuizResponse {
+  status: string;
+  assessment_id: number;
+  title: string;
+  class_level: number;
+  subject_id: number;
+  duration_minutes: number;
+  questions_created: number;
+}
+
 export interface StartAttemptPayload {
   user_id: number;
   assessment_id: number;

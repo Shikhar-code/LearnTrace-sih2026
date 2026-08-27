@@ -10,6 +10,8 @@ import {
   BulkChunkTopicUpdateResponse,
   Assessment,
   Question,
+  GenerateQuizRequest,
+  GenerateQuizResponse,
   StartAttemptResponse,
   SubmitResponsePayload,
   SubmitResponseResult,
@@ -209,6 +211,19 @@ export const assessmentApi = {
   finishAttempt: async (attemptId: number): Promise<FinishAttemptResponse> => {
     const response = await apiClient.post<FinishAttemptResponse>(
       `/attempts/${attemptId}/finish`,
+    );
+    return response.data;
+  },
+};
+
+// AI Quiz Generation Endpoints
+export const aiQuizApi = {
+  generateQuiz: async (
+    payload: GenerateQuizRequest,
+  ): Promise<GenerateQuizResponse> => {
+    const response = await apiClient.post<GenerateQuizResponse>(
+      "/ai-quizzes/generate",
+      payload,
     );
     return response.data;
   },
