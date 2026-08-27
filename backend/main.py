@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+git statusfrom fastapi import FastAPI
 from sqlalchemy import text
 
 from core.database import Base, engine
@@ -10,6 +10,7 @@ from routes.questions import router as questions_router
 from routes.assessments import router as assessments_router
 from routes.attempts import router as attempts_router
 from routes.mastery import router as mastery_router
+from routes.intelligence import router as intelligence_router
 
 
 
@@ -48,6 +49,7 @@ app.include_router(questions_router)
 app.include_router(assessments_router)
 app.include_router(attempts_router)
 app.include_router(mastery_router)
+app.include_router(intelligence_router)
 
 @app.get("/")
 def root():

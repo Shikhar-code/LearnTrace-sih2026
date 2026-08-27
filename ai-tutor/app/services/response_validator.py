@@ -10,6 +10,7 @@ beyond what Pydantic schema validation alone can enforce:
   - Options are distinct (no duplicates).
   - The correct_option is one of the listed options.
   - The practice question explanation is non-empty.
+  - The practice question explanation explicitly mentions the correct_option text.
   - The practice question is not identical to the original question (when provided).
 
 Raises LLMResponseError for any violation so the caller can decide
@@ -107,7 +108,10 @@ def validate_tutor_response(
             f"does not match any of the listed options: {pq.options}"
         )
 
-    # ── 7. Practice question must not be identical to the original ───
+    # ── 7. Explanation must mention the correct_option ─────────────
+    _require_correct_option_in_explanation(pq.correct_option, pq.explanation)
+
+    # ── 8. Practice question must not be identical to the original ───
     if original_question_text:
         _reject_if_identical_to_original(pq.question, original_question_text)
 
@@ -157,4 +161,30 @@ def _reject_if_identical_to_original(
         raise LLMResponseError(
             "practice_question.question is identical to the original question. "
             "The practice question must be meaningfully different."
+        )
+
+
+def _require_correct_option_in_explanation(
+    correct_option: str, explanation: str
+) -> None:
+    """
+    Raise LLMResponseError if the correct_option text does not appear in the
+    practice question explanation.
+
+    Comparison is case-insensitive with whitespace normalised so that minor
+    formatting differences (extra spaces, different casing) do not cause
+    false rejections.
+
+    This is a deliberate simple string-containment check — not semantic
+    analysis.  Its purpose is to catch the specific class of contradiction
+    where the model writes an explanation for answer X but labels answer Y
+    as correct_option.
+    """
+    def _normalise(text: str) -> str:
+        return " ".join(text.strip().lower().split())
+
+    if _normalise(correct_option) not in _normalise(explanation):
+        raise LLMResponseError(
+            f"practice_question.explanation does not mention the correct_option. "
+            f"The explanation must explicitly state why '{correct_option}' is correct."
         )

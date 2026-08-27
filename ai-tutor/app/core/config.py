@@ -32,10 +32,16 @@ class Settings(BaseSettings):
     TUTOR_MOCK_MODE: bool = True
 
     # ------------------------------------------------------------------ #
-    # Gemini — Phase 2 LLM provider
+    # Gemini — primary LLM provider
     # ------------------------------------------------------------------ #
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
+
+    # ------------------------------------------------------------------ #
+    # Groq — fallback LLM provider
+    # ------------------------------------------------------------------ #
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
 
     # ------------------------------------------------------------------ #
     # Legacy placeholders (kept for backwards compat; superseded above)

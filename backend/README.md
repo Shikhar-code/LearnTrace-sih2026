@@ -753,6 +753,38 @@ GET /mastery/input/{attempt_id}
 
 The backend is responsible for providing structured assessment evidence; the mastery logic can operate on that data separately.
 
+### Intelligence analysis
+
+The thin integration route passes existing assessment payloads to the sibling
+`intelligence_engine` package. It does not change the database schema.
+
+```text
+GET  /intelligence/analyze/{attempt_id}
+POST /intelligence/analyze
+POST /intelligence/admin/heatmap
+```
+
+For a repeatable live demo, seed three isolated Class 10 Mathematics learners
+and their diagnostic/reassessment attempts:
+
+```powershell
+python -m db.seed_intelligence_demo
+```
+
+The command prints the generated attempt IDs and can be rerun without creating
+duplicate demo records.
+
+The JSON response contains raw concept evidence, five-tier mastery, explainable
+root gaps, and a gated learning path. Its `frontend` object also provides
+summary cards, chart series, a class/subject competency graph, and a focused
+root-cause graph. POST accepts multiple attempts for diagnostic/reassessment
+analysis.
+
+The admin heatmap endpoint groups explicitly supplied attempt IDs by learner
+and returns the cohort matrix, per-concept risk statistics, tier counts, and
+root-gap distribution as JSON. Connect the project's authentication layer to
+this route before exposing it outside the trusted development environment.
+
 ---
 
 ## Development Notes

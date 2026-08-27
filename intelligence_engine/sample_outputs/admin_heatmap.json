@@ -1,0 +1,878 @@
+{
+  "schema_version": "LEARNTRACE_ADMIN_HEATMAP_V1",
+  "scope": {
+    "class_id": "class-10",
+    "subject_id": "mathematics"
+  },
+  "summary": {
+    "student_count": 3,
+    "concept_count": 16,
+    "assessed_cell_count": 9,
+    "coverage_percentage": 18.8,
+    "average_readiness_score": 57.5,
+    "next_action_counts": {
+      "LEARN_CURRENT_STEP": 2,
+      "MAINTAIN_MASTERY": 1
+    },
+    "tier_distribution": {
+      "CRITICAL_GAP": 3,
+      "EMERGING": 2,
+      "MASTERED": 3,
+      "PROFICIENT": 1,
+      "UNKNOWN": 39
+    }
+  },
+  "scale": {
+    "value_field": "mastery_score",
+    "minimum": 0,
+    "maximum": 100,
+    "unknown": null,
+    "progression_gate": 70,
+    "mastered_gate": 85
+  },
+  "columns": [
+    {
+      "concept_id": "class-10:mathematics:real-numbers",
+      "label": "Real Numbers",
+      "position": 0
+    },
+    {
+      "concept_id": "class-10:mathematics:polynomials",
+      "label": "Polynomials",
+      "position": 1
+    },
+    {
+      "concept_id": "class-10:mathematics:pair-of-linear-equations-in-two-variables",
+      "label": "Pair of Linear Equations in Two Variables",
+      "position": 2
+    },
+    {
+      "concept_id": "class-10:mathematics:arithmetic-progressions",
+      "label": "Arithmetic Progressions",
+      "position": 3
+    },
+    {
+      "concept_id": "class-10:mathematics:coordinate-geometry",
+      "label": "Coordinate Geometry",
+      "position": 4
+    },
+    {
+      "concept_id": "class-10:mathematics:quadratic-equations",
+      "label": "Quadratic Equations",
+      "position": 5
+    },
+    {
+      "concept_id": "class-10:mathematics:statistics",
+      "label": "Statistics",
+      "position": 6
+    },
+    {
+      "concept_id": "class-10:mathematics:appendix-a2-mathematical-modelling",
+      "label": "Appendix A2: Mathematical Modelling",
+      "position": 7
+    },
+    {
+      "concept_id": "class-10:mathematics:probability",
+      "label": "Probability",
+      "position": 8
+    },
+    {
+      "concept_id": "class-10:mathematics:triangles",
+      "label": "Triangles",
+      "position": 9
+    },
+    {
+      "concept_id": "class-10:mathematics:appendix-a1-proofs-in-mathematics",
+      "label": "Appendix A1: Proofs in Mathematics",
+      "position": 10
+    },
+    {
+      "concept_id": "class-10:mathematics:circles",
+      "label": "Circles",
+      "position": 11
+    },
+    {
+      "concept_id": "class-10:mathematics:areas-related-to-circles",
+      "label": "Areas Related to Circles",
+      "position": 12
+    },
+    {
+      "concept_id": "class-10:mathematics:introduction-to-trigonometry",
+      "label": "Introduction to Trigonometry",
+      "position": 13
+    },
+    {
+      "concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+      "label": "Some Applications of Trigonometry",
+      "position": 14
+    },
+    {
+      "concept_id": "class-10:mathematics:surface-areas-and-volumes",
+      "label": "Surface Areas and Volumes",
+      "position": 15
+    }
+  ],
+  "rows": [
+    {
+      "user_id": 101,
+      "target_concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+      "readiness_score": 48.7,
+      "next_action": {
+        "type": "LEARN_CURRENT_STEP",
+        "concept_id": "class-10:mathematics:introduction-to-trigonometry",
+        "label": "Introduction to Trigonometry"
+      },
+      "cells": [
+        {
+          "concept_id": "class-10:mathematics:real-numbers",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:polynomials",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:pair-of-linear-equations-in-two-variables",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:arithmetic-progressions",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:coordinate-geometry",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:quadratic-equations",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:statistics",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:appendix-a2-mathematical-modelling",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:probability",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:triangles",
+          "assessed": true,
+          "mastery_probability": 0.8163,
+          "mastery_score": 81.6,
+          "tier": "PROFICIENT",
+          "confidence": 0.5459,
+          "can_progress": true,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:appendix-a1-proofs-in-mathematics",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:circles",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:areas-related-to-circles",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:introduction-to-trigonometry",
+          "assessed": true,
+          "mastery_probability": 0.4043,
+          "mastery_score": 40.4,
+          "tier": "EMERGING",
+          "confidence": 0.5354,
+          "can_progress": false,
+          "is_root_gap": true
+        },
+        {
+          "concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+          "assessed": true,
+          "mastery_probability": 0.234,
+          "mastery_score": 23.4,
+          "tier": "CRITICAL_GAP",
+          "confidence": 0.5354,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:surface-areas-and-volumes",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        }
+      ]
+    },
+    {
+      "user_id": 102,
+      "target_concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+      "readiness_score": 32.2,
+      "next_action": {
+        "type": "LEARN_CURRENT_STEP",
+        "concept_id": "class-10:mathematics:triangles",
+        "label": "Triangles"
+      },
+      "cells": [
+        {
+          "concept_id": "class-10:mathematics:real-numbers",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:polynomials",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:pair-of-linear-equations-in-two-variables",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:arithmetic-progressions",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:coordinate-geometry",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:quadratic-equations",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:statistics",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:appendix-a2-mathematical-modelling",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:probability",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:triangles",
+          "assessed": true,
+          "mastery_probability": 0.4894,
+          "mastery_score": 48.9,
+          "tier": "EMERGING",
+          "confidence": 0.5354,
+          "can_progress": false,
+          "is_root_gap": true
+        },
+        {
+          "concept_id": "class-10:mathematics:appendix-a1-proofs-in-mathematics",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:circles",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:areas-related-to-circles",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:introduction-to-trigonometry",
+          "assessed": true,
+          "mastery_probability": 0.3265,
+          "mastery_score": 32.7,
+          "tier": "CRITICAL_GAP",
+          "confidence": 0.5459,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+          "assessed": true,
+          "mastery_probability": 0.1489,
+          "mastery_score": 14.9,
+          "tier": "CRITICAL_GAP",
+          "confidence": 0.5354,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:surface-areas-and-volumes",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        }
+      ]
+    },
+    {
+      "user_id": 103,
+      "target_concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+      "readiness_score": 91.5,
+      "next_action": {
+        "type": "MAINTAIN_MASTERY",
+        "concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+        "label": "Some Applications of Trigonometry"
+      },
+      "cells": [
+        {
+          "concept_id": "class-10:mathematics:real-numbers",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:polynomials",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:pair-of-linear-equations-in-two-variables",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:arithmetic-progressions",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:coordinate-geometry",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:quadratic-equations",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:statistics",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:appendix-a2-mathematical-modelling",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:probability",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:triangles",
+          "assessed": true,
+          "mastery_probability": 0.9149,
+          "mastery_score": 91.5,
+          "tier": "MASTERED",
+          "confidence": 0.5354,
+          "can_progress": true,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:appendix-a1-proofs-in-mathematics",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:circles",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:areas-related-to-circles",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:introduction-to-trigonometry",
+          "assessed": true,
+          "mastery_probability": 0.9149,
+          "mastery_score": 91.5,
+          "tier": "MASTERED",
+          "confidence": 0.5354,
+          "can_progress": true,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+          "assessed": true,
+          "mastery_probability": 0.9149,
+          "mastery_score": 91.5,
+          "tier": "MASTERED",
+          "confidence": 0.5354,
+          "can_progress": true,
+          "is_root_gap": false
+        },
+        {
+          "concept_id": "class-10:mathematics:surface-areas-and-volumes",
+          "assessed": false,
+          "mastery_probability": null,
+          "mastery_score": null,
+          "tier": "UNKNOWN",
+          "confidence": null,
+          "can_progress": false,
+          "is_root_gap": false
+        }
+      ]
+    }
+  ],
+  "concept_summary": [
+    {
+      "concept_id": "class-10:mathematics:real-numbers",
+      "label": "Real Numbers",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:polynomials",
+      "label": "Polynomials",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:pair-of-linear-equations-in-two-variables",
+      "label": "Pair of Linear Equations in Two Variables",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:arithmetic-progressions",
+      "label": "Arithmetic Progressions",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:coordinate-geometry",
+      "label": "Coordinate Geometry",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:quadratic-equations",
+      "label": "Quadratic Equations",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:statistics",
+      "label": "Statistics",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:appendix-a2-mathematical-modelling",
+      "label": "Appendix A2: Mathematical Modelling",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:probability",
+      "label": "Probability",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:triangles",
+      "label": "Triangles",
+      "assessed_students": 3,
+      "unknown_students": 0,
+      "average_mastery_score": 74.0,
+      "median_mastery_score": 81.6,
+      "at_risk_students": 1,
+      "can_progress_students": 2,
+      "root_gap_students": 1,
+      "tier_distribution": {
+        "EMERGING": 1,
+        "MASTERED": 1,
+        "PROFICIENT": 1
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:appendix-a1-proofs-in-mathematics",
+      "label": "Appendix A1: Proofs in Mathematics",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:circles",
+      "label": "Circles",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:areas-related-to-circles",
+      "label": "Areas Related to Circles",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:introduction-to-trigonometry",
+      "label": "Introduction to Trigonometry",
+      "assessed_students": 3,
+      "unknown_students": 0,
+      "average_mastery_score": 54.9,
+      "median_mastery_score": 40.4,
+      "at_risk_students": 2,
+      "can_progress_students": 1,
+      "root_gap_students": 1,
+      "tier_distribution": {
+        "CRITICAL_GAP": 1,
+        "EMERGING": 1,
+        "MASTERED": 1
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:some-applications-of-trigonometry",
+      "label": "Some Applications of Trigonometry",
+      "assessed_students": 3,
+      "unknown_students": 0,
+      "average_mastery_score": 43.3,
+      "median_mastery_score": 23.4,
+      "at_risk_students": 2,
+      "can_progress_students": 1,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "CRITICAL_GAP": 2,
+        "MASTERED": 1
+      }
+    },
+    {
+      "concept_id": "class-10:mathematics:surface-areas-and-volumes",
+      "label": "Surface Areas and Volumes",
+      "assessed_students": 0,
+      "unknown_students": 3,
+      "average_mastery_score": null,
+      "median_mastery_score": null,
+      "at_risk_students": 0,
+      "can_progress_students": 0,
+      "root_gap_students": 0,
+      "tier_distribution": {
+        "UNKNOWN": 3
+      }
+    }
+  ],
+  "root_gap_distribution": [
+    {
+      "concept_id": "class-10:mathematics:introduction-to-trigonometry",
+      "label": "Introduction to Trigonometry",
+      "student_count": 1,
+      "student_percentage": 33.3
+    },
+    {
+      "concept_id": "class-10:mathematics:triangles",
+      "label": "Triangles",
+      "student_count": 1,
+      "student_percentage": 33.3
+    }
+  ]
+}
