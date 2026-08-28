@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { intelligenceApi, getApiErrorMessage } from "../../services/api";
-import { LearnerFrontendPayload, AttemptAnalysisInput } from "../../types";
+import { useAuth } from "../../context/AuthContext";
+import { getStudentAttempts } from "../../services/attemptStorage";
+import { LearnerFrontendPayload } from "../../types";
 import {
   KnowledgeGraphView,
   LearningPathStepper,
@@ -16,12 +18,9 @@ import {
   Award,
   RefreshCw,
   Target,
-  User,
   Sparkles,
   Milestone,
   X,
-  ArrowRight,
-  HelpCircle,
 } from "lucide-react";
 
 const SUBJECT_OPTIONS = [
@@ -55,18 +54,19 @@ const SUBJECT_OPTIONS = [
   },
 ];
 
-// Default historical attempt baseline for demo learner
-const DEFAULT_STUDENT_ATTEMPTS: AttemptAnalysisInput[] = [
-  { attempt_id: 1, assessment_type: "diagnostic" },
-];
-
 export const KnowledgeGraphExplorer: React.FC = () => {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const queryAttemptId = searchParams.get("attempt_id")
     ? Number(searchParams.get("attempt_id"))
     : null;
+
+  const activeStudentId = user?.id || 1;
+  const studentAttempts = useMemo(
+    () => getStudentAttempts(activeStudentId),
+    [activeStudentId],
+  );
 
   const [selectedSubjectIdx, setSelectedSubjectIdx] = useState<number>(0);
   const [frontendData, setFrontendData] =
@@ -93,6 +93,10 @@ export const KnowledgeGraphExplorer: React.FC = () => {
     setSelectedTopicForRemediation(null);
     setRemediationData(null);
 
+    const primaryAttemptId = studentAttempts[0]?.attempt_id || activeStudentId;
+    const primaryAttemptType =
+      studentAttempts[0]?.assessment_type || "diagnostic";
+
     try {
       if (queryAttemptId) {
         // Specific quiz attempt analysis
@@ -103,19 +107,19 @@ export const KnowledgeGraphExplorer: React.FC = () => {
         );
         setFrontendData(data);
       } else {
-        // Cumulative student attempts across history
+        // Cumulative attempts specifically for the current logged-in student
         const data = await intelligenceApi.getHistoryFrontend(
-          DEFAULT_STUDENT_ATTEMPTS,
+          studentAttempts,
           activeSubject.defaultTarget,
         );
         setFrontendData(data);
       }
     } catch {
-      // Graceful fallback to single attempt if multi-attempt fails on unseeded scopes
+      // Graceful fallback to student's primary attempt
       try {
         const fallbackData = await intelligenceApi.getLearnerFrontend(
-          1,
-          "diagnostic",
+          primaryAttemptId,
+          primaryAttemptType,
           activeSubject.defaultTarget,
         );
         setFrontendData(fallbackData);
@@ -132,7 +136,7 @@ export const KnowledgeGraphExplorer: React.FC = () => {
 
   useEffect(() => {
     loadGraph();
-  }, [queryAttemptId, selectedSubjectIdx]);
+  }, [queryAttemptId, selectedSubjectIdx, activeStudentId]);
 
   // Handler to fetch and display tailored remediation for any clicked topic
   const handleViewRemediation = async (
@@ -152,6 +156,10 @@ export const KnowledgeGraphExplorer: React.FC = () => {
       }
     }, 40);
 
+    const primaryAttemptId = studentAttempts[0]?.attempt_id || activeStudentId;
+    const primaryAttemptType =
+      studentAttempts[0]?.assessment_type || "diagnostic";
+
     try {
       if (queryAttemptId) {
         const data = await intelligenceApi.getLearnerFrontend(
@@ -162,7 +170,7 @@ export const KnowledgeGraphExplorer: React.FC = () => {
         setRemediationData(data);
       } else {
         const data = await intelligenceApi.getHistoryFrontend(
-          DEFAULT_STUDENT_ATTEMPTS,
+          studentAttempts,
           conceptId,
         );
         setRemediationData(data);
@@ -171,8 +179,8 @@ export const KnowledgeGraphExplorer: React.FC = () => {
       console.warn("Attempting fallback for concept remediation:", err);
       try {
         const fallbackData = await intelligenceApi.getLearnerFrontend(
-          1,
-          "diagnostic",
+          primaryAttemptId,
+          primaryAttemptType,
           conceptId,
         );
         setRemediationData(fallbackData);
@@ -211,37 +219,26 @@ export const KnowledgeGraphExplorer: React.FC = () => {
   }, [frontendData]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto w-full pb-12">
+    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto w-full pb-16">
       {/* Header Bar */}
       <div className="bg-white rounded-xl border border-stone-200/80 p-4 sm:p-6 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-teal-800 font-semibold text-[11px] uppercase tracking-wider">
-              <GitFork className="w-3.5 h-3.5" /> Curriculum Competency Network
+              <GitFork className="w-3.5 h-3.5" /> Prerequisite Knowledge
+              Structure
             </div>
             <h1 className="text-lg sm:text-xl font-bold text-stone-900 mt-1 tracking-tight">
-              Subject Knowledge Graph
+              Curriculum Knowledge Graph
             </h1>
             <p className="text-xs text-stone-600 mt-0.5">
-              Explore prerequisite concept dependencies and cumulative student
-              mastery across NCERT subjects.
+              Topological mastery map across foundation prerequisites and target
+              concepts for {activeSubject.label}.
             </p>
           </div>
 
-          {/* Student Status & Refresh */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-stone-100/80 px-3 py-1.5 rounded-lg border border-stone-200/80 text-xs">
-              <User className="w-3.5 h-3.5 text-teal-800" />
-              <span className="text-stone-600 font-medium">
-                Mastery Profile:
-              </span>
-              <span className="font-semibold text-stone-800">
-                {queryAttemptId
-                  ? `Quiz Attempt #${queryAttemptId}`
-                  : "Cumulative (All Attempts)"}
-              </span>
-            </div>
-
+          {/* Refresh Action */}
+          <div className="flex items-center gap-2.5">
             <button
               onClick={loadGraph}
               className="px-3.5 py-1.5 bg-stone-100 hover:bg-stone-200/80 text-stone-700 border border-stone-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs"
@@ -300,177 +297,160 @@ export const KnowledgeGraphExplorer: React.FC = () => {
             <GitFork className="w-6 h-6" />
           </div>
           <h3 className="font-bold text-stone-800 text-sm">
-            No Graph Available
+            No Competency Graph Available
           </h3>
           <p className="text-xs text-stone-500 max-w-sm mx-auto">
-            Unable to load competency network for {activeSubject.label}.
+            Complete assessment quizzes for {activeSubject.label} to generate
+            your personal concept dependency graph.
           </p>
         </div>
       ) : (
         <>
-          {/* Top High-Level Graph Stats */}
+          {/* Summary Stat Cards */}
           {graphStats && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <StatCard
-                title="Syllabus Concepts"
+                title="Curriculum Nodes"
                 value={graphStats.totalNodes}
-                subtitle={`${activeSubject.label} nodes`}
+                subtitle={`${graphStats.totalEdges} prerequisite dependencies`}
                 icon={Layers}
                 colorScheme="teal"
               />
               <StatCard
-                title="Prerequisite Edges"
-                value={graphStats.totalEdges}
-                subtitle="Directed dependency paths"
-                icon={GitFork}
-                colorScheme="indigo"
+                title="Evaluated Topics"
+                value={`${graphStats.coveragePercent}%`}
+                subtitle={`${graphStats.assessedNodes} of ${graphStats.totalNodes} assessed`}
+                icon={Target}
+                colorScheme="amber"
               />
               <StatCard
-                title="Assessment Coverage"
-                value={`${graphStats.coveragePercent}%`}
-                subtitle={`${graphStats.assessedNodes} of ${graphStats.totalNodes} evaluated`}
+                title="Mastered Concepts"
+                value={graphStats.masteredNodes}
+                subtitle="Meeting 70% threshold"
                 icon={Award}
                 colorScheme="emerald"
               />
               <StatCard
-                title="Critical Gaps"
+                title="Identified Gaps"
                 value={graphStats.criticalNodes}
-                subtitle="Concepts requiring remediation"
-                icon={Target}
-                colorScheme={graphStats.criticalNodes > 0 ? "rose" : "stone"}
+                subtitle="Requiring remediation"
+                icon={Sparkles}
+                colorScheme="rose"
               />
             </div>
           )}
 
-          {/* Interactive DAG Graph Component with Hover Popover Inspector */}
-          <KnowledgeGraphView
-            graph={frontendData.graphs.competency}
-            title={`${activeSubject.label} Knowledge Graph`}
-            subtitle="Left-to-right progression: Foundation prerequisites (Level 0) flow into higher-order dependent topics."
-            onViewRemediation={handleViewRemediation}
-          />
+          {/* Interactive Knowledge Graph View */}
+          <div className="space-y-2">
+            <KnowledgeGraphView
+              graph={frontendData.graphs.competency}
+              title={`${activeSubject.label} — Prerequisite Dependency Graph`}
+              subtitle="Hover over any topic card for 500ms to inspect prerequisites, mastery tiers, and unlocks. Click and drag anywhere to pan the graph."
+              showHoverMenu={true}
+              onViewRemediation={handleViewRemediation}
+            />
+          </div>
 
-          {/* TOPIC-SPECIFIC REMEDIATION & LEARNING PATH SECTION */}
-          {selectedTopicForRemediation && (
-            <div
-              id="topic-remediation-section"
-              className="bg-white rounded-2xl border-2 border-teal-800/80 p-5 sm:p-7 shadow-lg space-y-6 scroll-mt-20 animate-in fade-in slide-in-from-bottom-4 duration-200"
-            >
-              {/* Header Banner */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-teal-100 text-teal-900 border border-teal-300 font-mono">
-                      <Sparkles className="w-3 h-3" /> Target Remediation Route
-                    </span>
-                    <span className="text-xs text-stone-500 font-mono">
-                      Cumulative Profile
-                    </span>
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-bold text-stone-900 tracking-tight">
-                    {selectedTopicForRemediation.label}
-                  </h2>
-                  <p className="text-xs text-stone-600">
-                    Prerequisite-first learning route and root-cause analysis
-                    generated specifically for mastering this topic.
-                  </p>
+          {/* TOPIC-SPECIFIC REMEDIATION SECTION */}
+          <div id="topic-remediation-section" className="scroll-mt-6">
+            {remediationLoading ? (
+              <div className="bg-white rounded-xl border border-teal-200/80 p-8 sm:p-12 shadow-xs text-center space-y-4 animate-in fade-in duration-200">
+                <div className="w-12 h-12 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center mx-auto text-teal-800">
+                  <RefreshCw className="w-6 h-6 animate-spin" />
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedTopicForRemediation(null);
-                      setRemediationData(null);
-                    }}
-                    className="px-3.5 py-1.5 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-100 hover:text-stone-900 text-xs font-semibold flex items-center gap-1.5 transition-all"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span>Dismiss Remediation</span>
-                  </button>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-stone-900">
+                    Computing Targeted Remediation Route
+                  </h3>
+                  <p className="text-xs text-stone-500 max-w-md mx-auto">
+                    Analyzing Bayesian root-cause dependencies and sequencing
+                    gated prerequisites for{" "}
+                    <span className="font-semibold text-teal-900">
+                      "{selectedTopicForRemediation?.label}"
+                    </span>
+                    ...
+                  </p>
                 </div>
               </div>
-
-              {/* Error Message for Remediation */}
-              {remediationError && (
-                <AlertBanner
-                  type="warning"
-                  title="Notice"
-                  message={remediationError}
-                  onClose={() => setRemediationError(null)}
-                />
-              )}
-
-              {/* Loading State with Instant Visual Feedback */}
-              {remediationLoading ? (
-                <div className="p-10 sm:p-14 text-center bg-teal-50/50 rounded-xl border border-teal-200/80 shadow-inner space-y-4 animate-in fade-in duration-150">
-                  <LoadingSpinner
-                    label={`Synthesizing root-cause dependency trace and prerequisite learning steps for "${selectedTopicForRemediation.label}"...`}
-                  />
-                  <p className="text-xs text-stone-500 max-w-md mx-auto">
-                    Analyzing cumulative student diagnostics, prerequisite
-                    weaknesses, and probabilistic mastery gates...
-                  </p>
-                </div>
-              ) : remediationData ? (
-                <div className="space-y-6">
-                  {/* 1. Focused Root-Cause Dependency Trace */}
-                  {remediationData.graphs?.root_cause && (
-                    <KnowledgeGraphView
-                      graph={remediationData.graphs.root_cause}
-                      title={`Root-Cause Dependency Trace: ${selectedTopicForRemediation.label}`}
-                      subtitle="Focused upstream trace explaining why prerequisite weakness impacts your target concept."
-                      showHoverMenu={false}
-                    />
-                  )}
-
-                  {/* 2. Step-by-Step Gated Learning Path */}
-                  {remediationData.learning_path && (
-                    <LearningPathStepper
-                      learningPath={remediationData.learning_path}
-                      onSelectStep={(step) => {
-                        if (step.status !== "LOCKED") {
-                          navigate("/curriculum");
-                        }
-                      }}
-                    />
-                  )}
-
-                  {/* Quick Action Footer */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-teal-50/70 border border-teal-200 rounded-xl">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-teal-800 text-white flex items-center justify-center flex-shrink-0">
-                        <Milestone className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-stone-900">
-                          Ready to practice prerequisite concepts?
-                        </h4>
-                        <p className="text-[11px] text-stone-600">
-                          Master the root cause gaps to unlock full competency
-                          for {selectedTopicForRemediation.label}.
-                        </p>
-                      </div>
+            ) : selectedTopicForRemediation && remediationData ? (
+              <div className="bg-white rounded-xl border border-teal-200/90 shadow-sm overflow-hidden animate-in fade-in duration-200">
+                {/* Remediation Header */}
+                <div className="bg-teal-50/60 border-b border-teal-100 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-teal-200/80 text-teal-900 text-[10px] font-bold uppercase font-mono tracking-wider">
+                        Topic Remediation
+                      </span>
+                      <h3 className="text-base font-bold text-stone-900">
+                        {selectedTopicForRemediation.label}
+                      </h3>
                     </div>
+                    <p className="text-xs text-stone-600">
+                      Targeted learning sequence and upstream root-cause trace
+                      to master this concept.
+                    </p>
+                  </div>
 
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => navigate("/curriculum")}
-                      className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap"
+                      onClick={() => {
+                        setSelectedTopicForRemediation(null);
+                        setRemediationData(null);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-teal-100/60 text-stone-500 hover:text-stone-800 transition-colors"
+                      title="Close remediation panel"
                     >
-                      <span>Explore Chapter Resources</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="p-8 text-center bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                  <HelpCircle className="w-8 h-8 text-stone-400 mx-auto" />
-                  <p className="text-xs text-stone-500">
-                    No active prerequisite gaps detected for this topic.
-                  </p>
+
+                <div className="p-4 sm:p-6 space-y-6">
+                  {/* Root-Cause Sub-Graph */}
+                  {remediationData.graphs?.root_cause && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-rose-800 font-bold text-xs uppercase tracking-wider font-mono">
+                        <GitFork className="w-3.5 h-3.5" /> Root-Cause
+                        Dependency Trace
+                      </div>
+                      <KnowledgeGraphView
+                        graph={remediationData.graphs.root_cause}
+                        title={`Prerequisite Chain for ${selectedTopicForRemediation.label}`}
+                        subtitle="Upstream concepts causing gaps in mastering this target topic."
+                        showHoverMenu={false}
+                      />
+                    </div>
+                  )}
+
+                  {/* Gated Learning Path Stepper */}
+                  {remediationData.learning_path && (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center gap-2 text-teal-800 font-bold text-xs uppercase tracking-wider font-mono">
+                        <Milestone className="w-3.5 h-3.5" /> Recommended
+                        Intervention Steps
+                      </div>
+                      <LearningPathStepper
+                        learningPath={remediationData.learning_path}
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            ) : remediationError ? (
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-xs text-rose-800 flex items-center justify-between">
+                <span>{remediationError}</span>
+                <button
+                  onClick={() => {
+                    setSelectedTopicForRemediation(null);
+                    setRemediationError(null);
+                  }}
+                  className="px-2 py-1 bg-white border border-rose-300 rounded text-[11px] font-bold text-rose-800"
+                >
+                  Dismiss
+                </button>
+              </div>
+            ) : null}
+          </div>
         </>
       )}
     </div>

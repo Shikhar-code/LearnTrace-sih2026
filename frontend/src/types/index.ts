@@ -119,7 +119,7 @@ export interface Assessment {
 export interface GenerateQuizRequest {
   topic_id: number;
   number_of_questions?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   duration_minutes?: number;
 }
 
@@ -248,3 +248,4 @@ export interface TutorResponse {
 
 // Re-export Intelligence Engine Types and Schemas
 export * from "./intelligence";
+export * from "./auth";

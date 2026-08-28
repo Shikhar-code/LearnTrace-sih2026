@@ -39,6 +39,25 @@ export const apiClient = axios.create({
   timeout: 30000,
 });
 
+// Attach Authorization token & current user ID to all outgoing requests
+apiClient.interceptors.request.use((config) => {
+  try {
+    const raw = localStorage.getItem("learntrace_auth_user");
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user?.token) {
+        config.headers.Authorization = `Bearer ${user.token}`;
+      }
+      if (user?.id) {
+        config.headers["X-User-Id"] = String(user.id);
+      }
+    }
+  } catch (e) {
+    // Ignore storage parse errors
+  }
+  return config;
+});
+
 // Helper for extracting readable error messages
 export const getApiErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
@@ -361,7 +380,8 @@ export const systemApi = {
 };
 
 // AI Tutor Service Endpoints (Dedicated Service)
-const TUTOR_API_BASE_URL = import.meta.env.VITE_TUTOR_API_BASE_URL || "/tutor-api";
+const TUTOR_API_BASE_URL =
+  import.meta.env.VITE_TUTOR_API_BASE_URL || "/tutor-api";
 
 export const tutorClient = axios.create({
   baseURL: TUTOR_API_BASE_URL,

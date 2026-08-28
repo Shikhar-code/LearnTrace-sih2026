@@ -5,6 +5,8 @@ import {
   masteryApi,
   getApiErrorMessage,
 } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import { getStudentAttempts } from "../../services/attemptStorage";
 import {
   LearnerFrontendPayload,
   MasteryInputResponse,
@@ -45,8 +47,13 @@ type ActiveTab = "remediation" | "knowledge_map" | "profile" | "history";
 export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
   initialAttemptId,
 }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
+  const studentAttempts = useMemo(
+    () => getStudentAttempts(user?.id || 1),
+    [user?.id],
+  );
 
   const queryAttemptId = searchParams.get("attempt_id")
     ? Number(searchParams.get("attempt_id"))
@@ -54,7 +61,7 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
 
   // Single Attempt State
   const [attemptIdInput, setAttemptIdInput] = useState<number>(
-    queryAttemptId || initialAttemptId || 1,
+    queryAttemptId || initialAttemptId || studentAttempts[0]?.attempt_id || 1,
   );
   const [targetConceptId, setTargetConceptId] = useState<string>("");
 
@@ -102,9 +109,10 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
   };
 
   useEffect(() => {
-    const idToFetch = queryAttemptId || initialAttemptId || attemptIdInput;
+    const idToFetch =
+      queryAttemptId || initialAttemptId || studentAttempts[0]?.attempt_id || 1;
     setAttemptIdInput(idToFetch);
-  }, [queryAttemptId, initialAttemptId]);
+  }, [queryAttemptId, initialAttemptId, studentAttempts]);
 
   useEffect(() => {
     loadIntelligence();

@@ -8,8 +8,6 @@ import {
   GraduationCap,
   Sparkles,
   Layers,
-  Shield,
-  User,
   Activity,
   Wifi,
   WifiOff,
@@ -18,6 +16,7 @@ import {
 } from "lucide-react";
 import { systemApi } from "../../services/api";
 import { Badge } from "../common/Badge";
+import { UserMenu } from "../auth/UserMenu";
 
 export const StudentLayout: React.FC = () => {
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
@@ -167,7 +166,7 @@ export const StudentLayout: React.FC = () => {
         </div>
 
         {/* Drawer Footer */}
-        <div className="p-4 border-t border-stone-200 space-y-3 flex-shrink-0">
+        <div className="p-4 border-t border-stone-200 flex-shrink-0">
           <div className="bg-stone-100/70 rounded-xl p-3 text-xs border border-stone-200/80">
             <div className="flex items-center gap-1.5 text-stone-700 font-medium">
               <Layers className="w-3.5 h-3.5 text-teal-800" />
@@ -177,15 +176,6 @@ export const StudentLayout: React.FC = () => {
               Classes 9 & 10 (Maths & Science) with NCERT source mapping.
             </p>
           </div>
-
-          <Link
-            to="/admin/ingest"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-stone-100 hover:bg-stone-200/80 text-stone-700 text-xs font-semibold border border-stone-300/70 transition-all shadow-2xs"
-          >
-            <Shield className="w-3.5 h-3.5 text-teal-800" />
-            <span>Switch to Admin Portal</span>
-          </Link>
         </div>
       </div>
 
@@ -247,7 +237,8 @@ export const StudentLayout: React.FC = () => {
         </div>
 
         {/* Footer Area: Academic Scope & Switch to Admin View */}
-        <div className="p-4 border-t border-stone-200 space-y-3 flex-shrink-0">
+        {/* Desktop Sidebar Footer */}
+        <div className="p-4 border-t border-stone-200 flex-shrink-0">
           <div className="bg-stone-100/70 rounded-xl p-3 text-xs border border-stone-200/80">
             <div className="flex items-center gap-1.5 text-stone-700 font-medium">
               <Layers className="w-3.5 h-3.5 text-teal-800" />
@@ -257,14 +248,6 @@ export const StudentLayout: React.FC = () => {
               Classes 9 & 10 (Maths & Science) with NCERT source mapping.
             </p>
           </div>
-
-          <Link
-            to="/admin/ingest"
-            className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-stone-100 hover:bg-stone-200/80 text-stone-700 text-xs font-semibold border border-stone-300/70 transition-all shadow-2xs"
-          >
-            <Shield className="w-3.5 h-3.5 text-teal-800" />
-            <span>Switch to Admin Portal</span>
-          </Link>
         </div>
       </aside>
 
@@ -311,20 +294,8 @@ export const StudentLayout: React.FC = () => {
               )}
             </div>
 
-            {/* Demo Student User Pill */}
-            <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-stone-200">
-              <div className="w-7 h-7 rounded-full bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 flex-shrink-0">
-                <User className="w-3.5 h-3.5" />
-              </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-xs font-medium text-stone-800">
-                  Demo Student
-                </div>
-                <div className="text-[10px] text-stone-400 font-mono">
-                  user_id: 1 (Demo)
-                </div>
-              </div>
-            </div>
+            {/* Authenticated User Menu & Persona Switcher */}
+            <UserMenu />
           </div>
         </header>
 

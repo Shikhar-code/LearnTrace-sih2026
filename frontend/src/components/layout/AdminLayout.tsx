@@ -3,7 +3,6 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   FileText,
   FolderOpen,
-  ArrowLeft,
   ShieldCheck,
   Activity,
   Wifi,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { systemApi } from "../../services/api";
 import { Badge } from "../common/Badge";
+import { UserMenu } from "../auth/UserMenu";
 
 export const AdminLayout: React.FC = () => {
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
@@ -148,7 +148,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Drawer Footer */}
-        <div className="p-4 border-t border-stone-200 space-y-3 flex-shrink-0">
+        <div className="p-4 border-t border-stone-200 flex-shrink-0">
           <div className="bg-stone-100/70 rounded-xl p-3 text-xs border border-stone-200/80">
             <div className="flex items-center gap-1.5 text-stone-700 font-medium">
               <Database className="w-3.5 h-3.5 text-stone-600" />
@@ -159,15 +159,6 @@ export const AdminLayout: React.FC = () => {
               syllabus topics.
             </p>
           </div>
-
-          <Link
-            to="/curriculum"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium shadow-xs transition-all"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Student Portal</span>
-          </Link>
         </div>
       </div>
 
@@ -230,8 +221,8 @@ export const AdminLayout: React.FC = () => {
           })}
         </div>
 
-        {/* Footer Link: Back to Student Portal */}
-        <div className="p-4 border-t border-stone-200 space-y-3 flex-shrink-0">
+        {/* Desktop Sidebar Footer */}
+        <div className="p-4 border-t border-stone-200 flex-shrink-0">
           <div className="bg-stone-100/70 rounded-xl p-3 text-xs border border-stone-200/80">
             <div className="flex items-center gap-1.5 text-stone-700 font-medium">
               <Database className="w-3.5 h-3.5 text-stone-600" />
@@ -242,14 +233,6 @@ export const AdminLayout: React.FC = () => {
               syllabus topics.
             </p>
           </div>
-
-          <Link
-            to="/curriculum"
-            className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium shadow-xs transition-all"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Student Portal</span>
-          </Link>
         </div>
       </aside>
 
@@ -296,20 +279,8 @@ export const AdminLayout: React.FC = () => {
               )}
             </div>
 
-            {/* Admin User Badge */}
-            <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-stone-200">
-              <div className="w-7 h-7 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-800 flex-shrink-0">
-                <ShieldCheck className="w-3.5 h-3.5" />
-              </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-xs font-medium text-stone-800">
-                  Curriculum Admin
-                </div>
-                <div className="text-[10px] text-stone-400 font-mono">
-                  Staff
-                </div>
-              </div>
-            </div>
+            {/* Authenticated Admin Menu & Persona Switcher */}
+            <UserMenu />
           </div>
         </header>
 
