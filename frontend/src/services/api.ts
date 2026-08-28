@@ -348,30 +348,6 @@ export const intelligenceApi = {
     }
     return response.data;
   },
-
-  /**
-   * Request concise mistake explanations for a full quiz submission (AI Tutor Mode 2).
-   */
-  explainQuiz: async (context: QuizTutorContext): Promise<QuizTutorResponse> => {
-    const response = await tutorClient.post<QuizTutorResponse>(
-      "/api/v1/tutor/explain-quiz",
-      context,
-      { timeout: 60000 },
-    );
-    return response.data;
-  },
-
-  /**
-   * Request post-quiz mistake analysis directly from Backend Attempt ID.
-   */
-  explainAttemptViaBackend: async (attemptId: number): Promise<QuizTutorResponse> => {
-    const response = await apiClient.post<QuizTutorResponse>(
-      `/attempts/${attemptId}/explain`,
-      {},
-      { timeout: 60000 },
-    );
-    return response.data;
-  },
 };
 
 // System Health

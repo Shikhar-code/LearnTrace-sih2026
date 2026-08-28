@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { tutorApi, assessmentApi, masteryApi, getApiErrorMessage } from '../../services/api';
-import { TutorContext, TutorResponse, AttemptSummaryItem } from '../../types';
+import { TutorContext, TutorResponse, AttemptSummaryItem, QuizTutorResponse } from '../../types';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { AlertBanner } from '../../components/common/AlertBanner';
@@ -17,7 +17,6 @@ import {
   GraduationCap,
   FileCheck2,
   AlertTriangle,
-  PlayCircle,
   History,
   ArrowRight,
 } from 'lucide-react';
@@ -100,7 +99,7 @@ export const AiTutor: React.FC = () => {
           {
             id: 1,
             assessment_id: 1,
-            assessment_title: 'LearnTrace Intelligence Demo - Diagnostic Assessment',
+            assessment_title: 'LearnTrace Demo Assessment (Triangles & Real Numbers)',
             class_level: 10,
             score: 67,
             completed: true,
@@ -331,27 +330,6 @@ export const AiTutor: React.FC = () => {
       {/* ────────────────────────────────────────────────────────── */}
       {!queryAttemptId && !activeContext && (
         <div className="space-y-6">
-          {/* Quick Quiz Runner Banner */}
-          <div className="bg-gradient-to-r from-teal-900 to-stone-900 text-white rounded-xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-teal-300 font-semibold text-xs uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 text-amber-300" /> Diagnostic Assessment
-              </div>
-              <h2 className="text-base sm:text-lg font-bold">Ready to test your concept mastery?</h2>
-              <p className="text-xs text-stone-300 max-w-xl">
-                Take a 10-question AI diagnostic quiz on any Class 9 or 10 chapter. Any mistakes will automatically feed into the AI Tutor for instant misconception remediation.
-              </p>
-            </div>
-
-            <button
-              onClick={() => navigate('/quiz')}
-              className="px-5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs rounded-lg transition-all shadow-xs flex items-center justify-center gap-2 whitespace-nowrap self-start sm:self-center"
-            >
-              <PlayCircle className="w-4 h-4" />
-              <span>Open Quiz Runner</span>
-            </button>
-          </div>
-
           {/* Recent Attempts Grid */}
           <div className="bg-white rounded-xl border border-stone-200/80 p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
