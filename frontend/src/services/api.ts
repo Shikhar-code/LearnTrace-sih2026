@@ -223,6 +223,31 @@ export const assessmentApi = {
     );
     return response.data;
   },
+
+  listCompletedAttempts: async (params?: {
+    class_level?: number;
+    subject_id?: number;
+    user_id?: number;
+    limit?: number;
+  }): Promise<
+    Array<{
+      attempt_id: number;
+      user_id: number;
+      user_name: string;
+      assessment_id: number;
+      assessment_title: string;
+      class_level: number | null;
+      subject_id: number | null;
+      subject_name: string | null;
+      score: number | null;
+      completed: boolean;
+      started_at: string | null;
+      finished_at: string | null;
+    }>
+  > => {
+    const response = await apiClient.get("/attempts/", { params });
+    return response.data;
+  },
 };
 
 // AI Quiz Generation Endpoints

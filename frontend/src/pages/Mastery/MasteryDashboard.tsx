@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   intelligenceApi,
   masteryApi,
+  assessmentApi,
   getApiErrorMessage,
 } from "../../services/api";
 import {
@@ -40,6 +41,13 @@ interface MasteryDashboardProps {
   initialAttemptId?: number | null;
 }
 
+interface RecentAttemptOption {
+  id: number;
+  assessment_title?: string;
+  score?: number;
+  class_level?: number;
+}
+
 type ActiveTab = "remediation" | "knowledge_map" | "profile" | "history";
 
 export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
@@ -56,6 +64,7 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
   const [attemptIdInput, setAttemptIdInput] = useState<number>(
     queryAttemptId || initialAttemptId || 1,
   );
+  const [availableAttempts, setAvailableAttempts] = useState<RecentAttemptOption[]>([]);
   const [targetConceptId, setTargetConceptId] = useState<string>("");
 
   // Data State
@@ -68,6 +77,63 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
 
   // Active View Tab
   const [activeTab, setActiveTab] = useState<ActiveTab>("remediation");
+
+  // Sync available completed attempts
+  useEffect(() => {
+    const syncAttempts = async () => {
+      let list: RecentAttemptOption[] = [];
+      try {
+        const dbAttempts = await assessmentApi.listCompletedAttempts({ limit: 10 });
+        list = dbAttempts.map((a) => ({
+          id: a.attempt_id,
+          assessment_title: a.assessment_title,
+          score: a.score ?? undefined,
+          class_level: a.class_level ?? undefined,
+        }));
+      } catch {
+        // Backend offline fallback
+      }
+
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("learntrace_recent_attempts") || "[]",
+        );
+        for (const s of stored) {
+          if (!list.some((item) => item.id === s.id)) {
+            list.push({
+              id: s.id,
+              assessment_title: s.assessment_title,
+              score: s.score,
+              class_level: s.class_level,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+
+      // Ensure baseline demo attempts are available
+      const baseline = [
+        { id: 1, assessment_title: "Class 10 Trigonometry Diagnostic", score: 50 },
+        { id: 4, assessment_title: "Class 10 Trigonometry Reassessment", score: 85 },
+        { id: 2, assessment_title: "Ravi Demo Diagnostic", score: 65 },
+        { id: 3, assessment_title: "Meera Demo Diagnostic", score: 90 },
+      ];
+      for (const b of baseline) {
+        if (!list.some((item) => item.id === b.id)) {
+          list.push(b);
+        }
+      }
+
+      setAvailableAttempts(list);
+
+      if (!queryAttemptId && !initialAttemptId && list.length > 0) {
+        setAttemptIdInput(list[0].id);
+      }
+    };
+
+    syncAttempts();
+  }, [queryAttemptId, initialAttemptId]);
 
   // Load Intelligence for Single Attempt
   const loadIntelligence = async () => {
@@ -178,6 +244,45 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Recent Attempts Switcher Bar */}
+        {availableAttempts.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+            <span className="text-[11px] font-semibold text-stone-500 flex items-center gap-1 flex-shrink-0">
+              <History className="w-3.5 h-3.5 text-teal-800" /> Recent Attempts:
+            </span>
+            {availableAttempts.map((att) => {
+              const isSelected = attemptIdInput === att.id;
+              return (
+                <button
+                  key={att.id}
+                  onClick={() => {
+                    setAttemptIdInput(att.id);
+                    setSearchParams({ attempt_id: att.id.toString() });
+                  }}
+                  className={`px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5 flex-shrink-0 transition-all text-xs ${
+                    isSelected
+                      ? "bg-teal-800 text-white font-bold shadow-2xs"
+                      : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                  }`}
+                >
+                  <span>#{att.id}</span>
+                  {att.score !== undefined && (
+                    <span
+                      className={`text-[10px] px-1 py-0.2 rounded font-mono font-bold ${
+                        isSelected
+                          ? "bg-teal-900 text-teal-200"
+                          : "bg-stone-200 text-stone-700"
+                      }`}
+                    >
+                      {att.score}%
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Error Message */}

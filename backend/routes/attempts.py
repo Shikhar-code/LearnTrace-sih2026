@@ -198,3 +198,51 @@ def finish_attempt(
         "score": score,
         "completed": attempt.completed,
     }
+
+
+@router.get("/")
+def list_attempts(
+    class_level: int | None = None,
+    subject_id: int | None = None,
+    user_id: int | None = None,
+    completed_only: bool = True,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(AssessmentAttempt)
+        .join(Assessment, AssessmentAttempt.assessment_id == Assessment.id)
+        .join(User, AssessmentAttempt.user_id == User.id)
+    )
+
+    if completed_only:
+        query = query.filter(AssessmentAttempt.completed.is_(True))
+
+    if class_level is not None:
+        query = query.filter(Assessment.class_level == class_level)
+
+    if subject_id is not None:
+        query = query.filter(Assessment.subject_id == subject_id)
+
+    if user_id is not None:
+        query = query.filter(AssessmentAttempt.user_id == user_id)
+
+    attempts = query.order_by(AssessmentAttempt.started_at.desc()).limit(limit).all()
+
+    return [
+        {
+            "attempt_id": a.id,
+            "user_id": a.user_id,
+            "user_name": a.user.name if a.user else f"Student #{a.user_id}",
+            "assessment_id": a.assessment_id,
+            "assessment_title": a.assessment.title if a.assessment else f"Assessment #{a.assessment_id}",
+            "class_level": a.assessment.class_level if a.assessment else None,
+            "subject_id": a.assessment.subject_id if a.assessment else None,
+            "subject_name": a.assessment.subject.name if a.assessment and a.assessment.subject else None,
+            "score": a.score,
+            "completed": a.completed,
+            "started_at": a.started_at.isoformat() if a.started_at else None,
+            "finished_at": a.finished_at.isoformat() if a.finished_at else None,
+        }
+        for a in attempts
+    ]

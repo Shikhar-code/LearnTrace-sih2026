@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { assessmentApi, academicApi, aiQuizApi, getApiErrorMessage } from '../../services/api';
+import { recordStudentAttempt } from '../../services/attemptStorage';
 import {
   Assessment,
   StartAttemptResponse,
@@ -152,6 +153,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
 
       // 3. Auto-start the attempt immediately
       const startRes = await assessmentApi.startAttempt(res.assessment_id, 1);
+      recordStudentAttempt(1, startRes.attempt_id, 'diagnostic');
       setAttempt(startRes);
       setCurrentQuestionIndex(0);
       setSelectedOptionId(null);
@@ -190,6 +192,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
         if (timerRef.current) clearInterval(timerRef.current);
         const finishRes = await assessmentApi.finishAttempt(attempt.attempt_id);
         setFinishedResult(finishRes);
+        recordStudentAttempt(1, attempt.attempt_id, 'diagnostic');
 
         // Record attempt in localStorage for the AI Tutor Hub
         try {

@@ -18,7 +18,6 @@ import {
   CheckSquare,
   Square,
   Search,
-  Filter,
   RefreshCw,
   PlusCircle,
   BookOpen,
@@ -31,7 +30,6 @@ export const PdfIngestion: React.FC = () => {
   const [documents, setDocuments] = useState<SourceDocument[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<SourceDocument | null>(null);
   const [filterClass, setFilterClass] = useState<number | undefined>(undefined);
-  const [loadingDocs, setLoadingDocs] = useState<boolean>(false);
   const [showUploadDrawer, setShowUploadDrawer] = useState<boolean>(false);
 
   // Upload Form State
@@ -76,7 +74,6 @@ export const PdfIngestion: React.FC = () => {
   }, []);
 
   const loadCatalogue = async (classLevel?: number) => {
-    setLoadingDocs(true);
     setErrorMessage(null);
     try {
       const docs = await documentsApi.getCatalogue(classLevel);
@@ -92,8 +89,6 @@ export const PdfIngestion: React.FC = () => {
       }
     } catch (err) {
       setErrorMessage(getApiErrorMessage(err));
-    } finally {
-      setLoadingDocs(false);
     }
   };
 

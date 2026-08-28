@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { intelligenceApi, getApiErrorMessage } from "../../services/api";
-import { LearnerFrontendPayload, AttemptAnalysisInput } from "../../types";
+import { getStudentAttempts } from "../../services/attemptStorage";
+import { LearnerFrontendPayload } from "../../types";
 import {
   KnowledgeGraphView,
   LearningPathStepper,
@@ -55,11 +56,6 @@ const SUBJECT_OPTIONS = [
   },
 ];
 
-// Default historical attempt baseline for demo learner
-const DEFAULT_STUDENT_ATTEMPTS: AttemptAnalysisInput[] = [
-  { attempt_id: 1, assessment_type: "diagnostic" },
-];
-
 export const KnowledgeGraphExplorer: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -67,6 +63,8 @@ export const KnowledgeGraphExplorer: React.FC = () => {
   const queryAttemptId = searchParams.get("attempt_id")
     ? Number(searchParams.get("attempt_id"))
     : null;
+
+  const studentAttempts = useMemo(() => getStudentAttempts(1), []);
 
   const [selectedSubjectIdx, setSelectedSubjectIdx] = useState<number>(0);
   const [frontendData, setFrontendData] =
@@ -93,6 +91,9 @@ export const KnowledgeGraphExplorer: React.FC = () => {
     setSelectedTopicForRemediation(null);
     setRemediationData(null);
 
+    const primaryAttemptId = studentAttempts[0]?.attempt_id || 1;
+    const primaryAttemptType = studentAttempts[0]?.assessment_type || "diagnostic";
+
     try {
       if (queryAttemptId) {
         // Specific quiz attempt analysis
@@ -105,17 +106,17 @@ export const KnowledgeGraphExplorer: React.FC = () => {
       } else {
         // Cumulative student attempts across history
         const data = await intelligenceApi.getHistoryFrontend(
-          DEFAULT_STUDENT_ATTEMPTS,
+          studentAttempts,
           activeSubject.defaultTarget,
         );
         setFrontendData(data);
       }
     } catch {
-      // Graceful fallback to single attempt if multi-attempt fails on unseeded scopes
+      // Graceful fallback to student's primary attempt
       try {
         const fallbackData = await intelligenceApi.getLearnerFrontend(
-          1,
-          "diagnostic",
+          primaryAttemptId,
+          primaryAttemptType,
           activeSubject.defaultTarget,
         );
         setFrontendData(fallbackData);
@@ -132,7 +133,7 @@ export const KnowledgeGraphExplorer: React.FC = () => {
 
   useEffect(() => {
     loadGraph();
-  }, [queryAttemptId, selectedSubjectIdx]);
+  }, [queryAttemptId, selectedSubjectIdx, studentAttempts]);
 
   // Handler to fetch and display tailored remediation for any clicked topic
   const handleViewRemediation = async (
@@ -152,6 +153,9 @@ export const KnowledgeGraphExplorer: React.FC = () => {
       }
     }, 40);
 
+    const primaryAttemptId = studentAttempts[0]?.attempt_id || 1;
+    const primaryAttemptType = studentAttempts[0]?.assessment_type || "diagnostic";
+
     try {
       if (queryAttemptId) {
         const data = await intelligenceApi.getLearnerFrontend(
@@ -162,7 +166,7 @@ export const KnowledgeGraphExplorer: React.FC = () => {
         setRemediationData(data);
       } else {
         const data = await intelligenceApi.getHistoryFrontend(
-          DEFAULT_STUDENT_ATTEMPTS,
+          studentAttempts,
           conceptId,
         );
         setRemediationData(data);
@@ -171,8 +175,8 @@ export const KnowledgeGraphExplorer: React.FC = () => {
       console.warn("Attempting fallback for concept remediation:", err);
       try {
         const fallbackData = await intelligenceApi.getLearnerFrontend(
-          1,
-          "diagnostic",
+          primaryAttemptId,
+          primaryAttemptType,
           conceptId,
         );
         setRemediationData(fallbackData);

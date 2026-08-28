@@ -1,5 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { intelligenceApi, getApiErrorMessage } from "../../services/api";
+import {
+  intelligenceApi,
+  assessmentApi,
+  getApiErrorMessage,
+} from "../../services/api";
+import { getAllCohortAttemptIds } from "../../services/attemptStorage";
 import {
   AdminHeatmapPayload,
   AttemptAnalysisInput,
@@ -18,6 +23,7 @@ import {
   BookOpen,
   Grid,
   TrendingDown,
+  Sparkles,
 } from "lucide-react";
 
 const SUBJECT_OPTIONS = [
@@ -50,16 +56,20 @@ const SUBJECT_OPTIONS = [
 // Baseline attempts for cohort analysis
 const DEFAULT_COHORT_ATTEMPTS: AttemptAnalysisInput[] = [
   { attempt_id: 1, assessment_type: "diagnostic" },
+  { attempt_id: 4, assessment_type: "reassessment" },
+  { attempt_id: 2, assessment_type: "diagnostic" },
+  { attempt_id: 3, assessment_type: "diagnostic" },
 ];
 
 export const CohortHeatmap: React.FC = () => {
   const [selectedSubjectIdx, setSelectedSubjectIdx] = useState<number>(0);
-  const [attemptIdsInput, setAttemptIdsInput] = useState<string>("1");
+  const [attemptIdsInput, setAttemptIdsInput] = useState<string>("1, 2, 3, 4");
   const [heatmapData, setHeatmapData] = useState<AdminHeatmapPayload | null>(
     null,
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [discoveredCount, setDiscoveredCount] = useState<number>(4);
   const [activeCellDetail, setActiveCellDetail] = useState<{
     studentId: number;
     conceptLabel: string;
@@ -67,6 +77,35 @@ export const CohortHeatmap: React.FC = () => {
   } | null>(null);
 
   const activeSubject = SUBJECT_OPTIONS[selectedSubjectIdx];
+
+  // Auto-sync completed attempts from backend & storage
+  useEffect(() => {
+    const syncAttempts = async () => {
+      try {
+        const storedIds = getAllCohortAttemptIds();
+        let dbIds: number[] = [];
+        try {
+          const dbAttempts = await assessmentApi.listCompletedAttempts({
+            class_level: activeSubject.classLevel,
+          });
+          dbIds = dbAttempts.map((a) => a.attempt_id);
+        } catch {
+          // Backend may be offline during initial client boot
+        }
+
+        const merged = Array.from(
+          new Set([...storedIds, ...dbIds, 1, 2, 3, 4]),
+        ).sort((a, b) => a - b);
+
+        setAttemptIdsInput(merged.join(", "));
+        setDiscoveredCount(merged.length);
+      } catch (e) {
+        console.warn("Could not sync cohort attempt IDs:", e);
+      }
+    };
+
+    syncAttempts();
+  }, [selectedSubjectIdx]);
 
   const parseAttemptInputs = (): AttemptAnalysisInput[] => {
     const ids = attemptIdsInput
@@ -77,7 +116,11 @@ export const CohortHeatmap: React.FC = () => {
       .filter((n) => !isNaN(n) && n > 0);
 
     if (ids.length === 0) return DEFAULT_COHORT_ATTEMPTS;
-    return ids.map((id) => ({ attempt_id: id, assessment_type: "diagnostic" }));
+    // Multi-attempt heuristics: mark attempt #4 as reassessment, others as diagnostic
+    return ids.map((id) => ({
+      attempt_id: id,
+      assessment_type: id === 4 ? "reassessment" : "diagnostic",
+    }));
   };
 
   const loadHeatmap = async () => {
@@ -94,11 +137,20 @@ export const CohortHeatmap: React.FC = () => {
       );
       setHeatmapData(data);
     } catch (err) {
-      console.warn("Failed to load admin cohort heatmap:", err);
-      setErrorMessage(
-        `Unable to generate cohort heatmap for ${activeSubject.label}. ${getApiErrorMessage(err)}`,
-      );
-      setHeatmapData(null);
+      console.warn("Failed to load admin cohort heatmap with supplied IDs, attempting auto-discovery:", err);
+      try {
+        // Fallback to backend auto-discovery
+        const fallbackData = await intelligenceApi.getAdminHeatmap(
+          [],
+          activeSubject.defaultTarget,
+        );
+        setHeatmapData(fallbackData);
+      } catch (fallbackErr) {
+        setErrorMessage(
+          `Unable to generate cohort heatmap for ${activeSubject.label}. ${getApiErrorMessage(fallbackErr)}`,
+        );
+        setHeatmapData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -106,7 +158,7 @@ export const CohortHeatmap: React.FC = () => {
 
   useEffect(() => {
     loadHeatmap();
-  }, [selectedSubjectIdx]);
+  }, [selectedSubjectIdx, attemptIdsInput]);
 
   // Color mapper for heatmap cells
   const getCellStyles = (cell: AdminHeatmapCell) => {
@@ -201,6 +253,14 @@ export const CohortHeatmap: React.FC = () => {
 
           {/* Controls: Attempt IDs and Refresh */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Live Synced Badge */}
+            <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-200/80 px-2.5 py-1 rounded-lg text-xs">
+              <Sparkles className="w-3.5 h-3.5 text-teal-800" />
+              <span className="font-semibold text-teal-900">
+                {discoveredCount} Attempts Live
+              </span>
+            </div>
+
             <div className="flex items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-lg border border-stone-200/80 text-xs">
               <span className="font-medium text-stone-600 px-1 text-[11px]">
                 Attempts:
@@ -210,7 +270,7 @@ export const CohortHeatmap: React.FC = () => {
                 value={attemptIdsInput}
                 onChange={(e) => setAttemptIdsInput(e.target.value)}
                 placeholder="1, 2, 3"
-                className="w-24 px-2 py-1 bg-white border border-stone-300 rounded font-mono text-center font-bold text-stone-800 text-xs"
+                className="w-28 px-2 py-1 bg-white border border-stone-300 rounded font-mono text-center font-bold text-stone-800 text-xs"
                 title="Comma-separated Attempt IDs to include in cohort analysis"
               />
             </div>

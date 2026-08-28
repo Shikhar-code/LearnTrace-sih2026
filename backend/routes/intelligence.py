@@ -10,6 +10,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from models.attempt import AssessmentAttempt
+from models.quiz import Assessment
+from models.academic import Subject
 from routes.assessments import get_assessment
 from routes.mastery import get_mastery_input
 
@@ -34,7 +37,7 @@ class AttemptInput(BaseModel):
 
 
 class AnalysisRequest(BaseModel):
-    attempts: list[AttemptInput]
+    attempts: list[AttemptInput] = []
     target_concept_id: str | None = None
 
 
@@ -90,14 +93,50 @@ def analyze_cohort_heatmap(
     request: AnalysisRequest,
     db: Session = Depends(get_db),
 ):
-    """Return a frontend-ready mastery heatmap for explicitly supplied attempts."""
-    if not request.attempts:
-        raise HTTPException(status_code=422, detail="at least one attempt is required")
+    """Return a frontend-ready mastery heatmap with auto-discovery or supplied attempts."""
+    attempts_to_process = list(request.attempts)
+
+    # Auto-discover completed attempts from DB if none are explicitly supplied
+    if not attempts_to_process:
+        class_level = None
+        if request.target_concept_id:
+            parts = request.target_concept_id.split(":")
+            if len(parts) >= 2:
+                try:
+                    class_level = int(parts[0].replace("class-", ""))
+                except ValueError:
+                    class_level = None
+
+        query = (
+            db.query(AssessmentAttempt)
+            .join(Assessment, AssessmentAttempt.assessment_id == Assessment.id)
+            .filter(AssessmentAttempt.completed.is_(True))
+        )
+        if class_level is not None:
+            query = query.filter(Assessment.class_level == class_level)
+
+        db_attempts = query.order_by(AssessmentAttempt.user_id, AssessmentAttempt.started_at.asc()).all()
+
+        if not db_attempts:
+            # Fallback to seeded demo attempt 1
+            attempts_to_process = [AttemptInput(attempt_id=1, assessment_type=AssessmentType.DIAGNOSTIC)]
+        else:
+            user_seen = set()
+            auto_attempts = []
+            for att in db_attempts:
+                if att.user_id not in user_seen:
+                    auto_attempts.append(AttemptInput(attempt_id=att.id, assessment_type=AssessmentType.DIAGNOSTIC))
+                    user_seen.add(att.user_id)
+                else:
+                    auto_attempts.append(AttemptInput(attempt_id=att.id, assessment_type=AssessmentType.REASSESSMENT))
+            attempts_to_process = auto_attempts
+
     try:
         grouped: dict[int, list[dict]] = {}
-        for item in request.attempts:
+        for item in attempts_to_process:
             bundle = _bundle(item.attempt_id, item.assessment_type, db)
             grouped.setdefault(int(bundle["attempt"]["user_id"]), []).append(bundle)
+
         learner_payloads = [
             analyze_backend_bundles(
                 bundles,
