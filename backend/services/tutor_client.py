@@ -18,7 +18,7 @@ def get_tutor_quiz_explanation(quiz_context: dict[str, Any]) -> dict[str, Any]:
     """
     url = f"{AI_TUTOR_URL.rstrip('/')}/api/v1/tutor/explain-quiz"
 
-    with httpx.Client(timeout=30.0) as client:
+    with httpx.Client(timeout=60.0) as client:
         response = client.post(url, json=quiz_context)
         response.raise_for_status()
         return response.json()
@@ -30,7 +30,7 @@ def get_tutor_single_explanation(tutor_context: dict[str, Any]) -> dict[str, Any
     """
     url = f"{AI_TUTOR_URL.rstrip('/')}/api/v1/tutor/explain"
 
-    with httpx.Client(timeout=30.0) as client:
+    with httpx.Client(timeout=60.0) as client:
         response = client.post(url, json=tutor_context)
         response.raise_for_status()
         return response.json()

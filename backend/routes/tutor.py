@@ -1,6 +1,6 @@
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from core.database import get_db
 from models.attempt import AssessmentAttempt, Response
@@ -27,6 +27,9 @@ def explain_attempt_mistakes(
     """
     attempt = (
         db.query(AssessmentAttempt)
+        .options(
+            joinedload(AssessmentAttempt.assessment).joinedload(Assessment.subject)
+        )
         .filter(AssessmentAttempt.id == attempt_id)
         .first()
     )
@@ -43,63 +46,57 @@ def explain_attempt_mistakes(
             detail="Assessment attempt must be completed before generating tutor explanations.",
         )
 
-    assessment = (
-        db.query(Assessment)
-        .filter(Assessment.id == attempt.assessment_id)
-        .first()
-    )
+    assessment = attempt.assessment
 
     responses = (
         db.query(Response)
+        .options(
+            joinedload(Response.question)
+            .joinedload(Question.topic)
+            .joinedload(Topic.chapter)
+            .joinedload(Chapter.subject),
+            joinedload(Response.question).joinedload(Question.options),
+            joinedload(Response.selected_option),
+        )
         .filter(Response.attempt_id == attempt_id)
         .all()
     )
 
     question_results = []
-    subject_name = "General"
+    subject_name = (
+        assessment.subject.name
+        if assessment and assessment.subject
+        else "General"
+    )
     class_level = assessment.class_level if assessment else 9
 
     for resp in responses:
-        question = (
-            db.query(Question)
-            .filter(Question.id == resp.question_id)
-            .first()
-        )
+        question = resp.question
         if not question:
             continue
 
-        topic = (
-            db.query(Topic)
-            .filter(Topic.id == question.topic_id)
-            .first()
-        )
+        topic = question.topic
         topic_title = topic.title if topic else "General"
 
-        if topic and topic.chapter_id:
-            chapter = db.query(Chapter).filter(Chapter.id == topic.chapter_id).first()
-            if chapter and chapter.subject_id:
-                subject_obj = db.query(Subject).filter(Subject.id == chapter.subject_id).first()
-                if subject_obj:
-                    subject_name = subject_obj.name
+        if (
+            subject_name == "General"
+            and topic
+            and topic.chapter
+            and topic.chapter.subject
+        ):
+            subject_name = topic.chapter.subject.name
 
         student_answer_text = "No Answer"
-        if resp.selected_option_id:
-            selected_opt = (
-                db.query(QuestionOption)
-                .filter(QuestionOption.id == resp.selected_option_id)
-                .first()
-            )
-            if selected_opt:
-                student_answer_text = selected_opt.option_text
+        if resp.selected_option:
+            student_answer_text = resp.selected_option.option_text
 
-        correct_opt = (
-            db.query(QuestionOption)
-            .filter(
-                QuestionOption.question_id == question.id,
-                QuestionOption.is_correct == True,
-            )
-            .first()
-        )
+        correct_opt = None
+        if question.options:
+            for opt in question.options:
+                if opt.is_correct:
+                    correct_opt = opt
+                    break
+
         correct_answer_text = correct_opt.option_text if correct_opt else "Unknown"
 
         question_results.append(

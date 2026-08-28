@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { tutorApi, assessmentApi, masteryApi, getApiErrorMessage } from '../../services/api';
-import { TutorContext, TutorResponse, AttemptSummaryItem, QuizTutorResponse } from '../../types';
+import { TutorContext, TutorResponse, AttemptSummaryItem } from '../../types';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { AlertBanner } from '../../components/common/AlertBanner';
@@ -39,7 +39,6 @@ export const AiTutor: React.FC = () => {
     (location.state as { tutorContext?: TutorContext })?.tutorContext || null
   );
   const [tutorResponse, setTutorResponse] = useState<TutorResponse | null>(null);
-  const [, setQuizSummaryResponse] = useState<QuizTutorResponse | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState<boolean>(false);
 
   // Attempt Multi-Mistake Navigation (if arriving from Quiz attempt)
@@ -122,41 +121,47 @@ export const AiTutor: React.FC = () => {
     setLoadingExplanation(true);
     setErrorMessage(null);
     try {
-      try {
-        const mode2Res = await tutorApi.explainAttemptViaBackend(attemptId);
-        setQuizSummaryResponse(mode2Res);
-      } catch (e) {
-        console.warn("Could not load Mode 2 quiz summary:", e);
-      }
       const masteryData = await masteryApi.getMasteryInput(attemptId);
-      const assessData = await assessmentApi.getAssessment(masteryData.assessment_id);
+      const assessData = await assessmentApi.getAssessment(
+        masteryData.assessment_id,
+      );
       setActiveAttemptTitle(assessData.title);
 
       // Filter incorrect questions
-      const incorrectResponses = masteryData.responses.filter((r) => r.is_correct === false);
+      const incorrectResponses = masteryData.responses.filter(
+        (r) => r.is_correct === false,
+      );
       const contexts: TutorContext[] = [];
 
       for (const resp of incorrectResponses) {
-        const matchingQ = assessData.questions.find((q) => q.question_id === resp.question_id);
+        const matchingQ = assessData.questions.find(
+          (q) => q.question_id === resp.question_id,
+        );
         if (matchingQ && matchingQ.options.length >= 2) {
           // 1. Find the actual correct option text
-          const correctOptObj = matchingQ.options.find((o) => o.is_correct === true) || matchingQ.options[0];
+          const correctOptObj =
+            matchingQ.options.find((o) => o.is_correct === true) ||
+            matchingQ.options[0];
           const correctOptText = correctOptObj.option_text;
 
           // 2. Find the actual learner selected option text
-          let selectedOptText = 'Alternate Conception';
+          let selectedOptText = "Alternate Conception";
           if (resp.selected_option_id) {
-            const chosen = matchingQ.options.find((o) => o.id === resp.selected_option_id);
+            const chosen = matchingQ.options.find(
+              (o) => o.id === resp.selected_option_id,
+            );
             if (chosen) selectedOptText = chosen.option_text;
           } else {
-            const distractor = matchingQ.options.find((o) => o.option_text !== correctOptText);
+            const distractor = matchingQ.options.find(
+              (o) => o.option_text !== correctOptText,
+            );
             if (distractor) selectedOptText = distractor.option_text;
           }
 
           contexts.push({
             competency: {
               id: `topic_${resp.topic_id}`,
-              name: resp.topic || 'Syllabus Topic',
+              name: resp.topic || "Syllabus Topic",
             },
             question: {
               id: `q_${resp.question_id}`,
@@ -166,7 +171,7 @@ export const AiTutor: React.FC = () => {
             learner_answer: selectedOptText,
             correct_answer: correctOptText,
             detected_gap: {
-              description: `Learner selected '${selectedOptText}' instead of '${correctOptText}' on ${resp.topic || 'this topic'}.`,
+              description: `Learner selected '${selectedOptText}' instead of '${correctOptText}' on ${resp.topic || "this topic"}.`,
             },
           });
         }
@@ -178,10 +183,14 @@ export const AiTutor: React.FC = () => {
         setActiveContext(contexts[0]);
         await fetchExplanation(contexts[0]);
       } else {
-        setErrorMessage('All questions in this attempt were answered correctly! No mistakes detected.');
+        setErrorMessage(
+          "All questions in this attempt were answered correctly! No mistakes detected.",
+        );
       }
     } catch (err) {
-      setErrorMessage(`Failed to load attempt mistakes. ${getApiErrorMessage(err)}`);
+      setErrorMessage(
+        `Failed to load attempt mistakes. ${getApiErrorMessage(err)}`,
+      );
     } finally {
       setLoadingExplanation(false);
     }
