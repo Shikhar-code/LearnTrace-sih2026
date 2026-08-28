@@ -18,6 +18,7 @@ import {
 import { Badge } from "../../components/common/Badge";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { AlertBanner } from "../../components/common/AlertBanner";
+import { FormattedMathText } from "../../components/common/FormattedMathText";
 import {
   PlayCircle,
   Clock,
@@ -634,9 +635,13 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                     {assessment.questions[currentQuestionIndex].difficulty}
                   </Badge>
                 </div>
-                <h3 className="text-sm sm:text-base font-semibold text-stone-900 leading-relaxed">
-                  {assessment.questions[currentQuestionIndex].question_text}
-                </h3>
+                <div className="text-sm sm:text-base font-semibold text-stone-900 leading-relaxed">
+                  <FormattedMathText
+                    content={
+                      assessment.questions[currentQuestionIndex].question_text
+                    }
+                  />
+                </div>
               </div>
 
               {/* Touch-Friendly Options List */}
@@ -656,7 +661,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                         }`}
                       >
                         <span
-                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 ${
                             isSelected
                               ? "bg-teal-800 text-white"
                               : "bg-stone-100 text-stone-600"
@@ -664,9 +669,9 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                         >
                           {letter}
                         </span>
-                        <span className="flex-1 leading-snug">
-                          {option.option_text}
-                        </span>
+                        <div className="flex-1 leading-snug">
+                          <FormattedMathText content={option.option_text} />
+                        </div>
                       </button>
                     );
                   },

@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import { tutorApi, assessmentApi, masteryApi, getApiErrorMessage } from '../../services/api';
-import { TutorContext, TutorResponse, AttemptSummaryItem } from '../../types';
-import { Badge } from '../../components/common/Badge';
-import { LoadingSpinner } from '../../components/common/LoadingSpinner';
-import { AlertBanner } from '../../components/common/AlertBanner';
+import React, { useEffect, useState } from "react";
+import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
+import {
+  tutorApi,
+  assessmentApi,
+  masteryApi,
+  getApiErrorMessage,
+} from "../../services/api";
+import { TutorContext, TutorResponse, AttemptSummaryItem } from "../../types";
+import { Badge } from "../../components/common/Badge";
+import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { AlertBanner } from "../../components/common/AlertBanner";
+import { FormattedMathText } from '../../components/common/FormattedMathText';
 import {
   Sparkles,
   Bot,
@@ -19,35 +25,43 @@ import {
   AlertTriangle,
   History,
   ArrowRight,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const AiTutor: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const queryAttemptId = searchParams.get('attempt_id') ? Number(searchParams.get('attempt_id')) : null;
+  const queryAttemptId = searchParams.get("attempt_id")
+    ? Number(searchParams.get("attempt_id"))
+    : null;
 
   // Service Health State
   const [tutorOnline, setTutorOnline] = useState<boolean | null>(null);
 
   // Recent Attempts Hub State
-  const [recentAttempts, setRecentAttempts] = useState<AttemptSummaryItem[]>([]);
+  const [recentAttempts, setRecentAttempts] = useState<AttemptSummaryItem[]>(
+    [],
+  );
   const [loadingAttempts, setLoadingAttempts] = useState<boolean>(false);
 
   // Active Context & AI Tutor Response
   const [activeContext, setActiveContext] = useState<TutorContext | null>(
-    (location.state as { tutorContext?: TutorContext })?.tutorContext || null
+    (location.state as { tutorContext?: TutorContext })?.tutorContext || null,
   );
-  const [tutorResponse, setTutorResponse] = useState<TutorResponse | null>(null);
+  const [tutorResponse, setTutorResponse] = useState<TutorResponse | null>(
+    null,
+  );
   const [loadingExplanation, setLoadingExplanation] = useState<boolean>(false);
 
   // Attempt Multi-Mistake Navigation (if arriving from Quiz attempt)
   const [mistakeList, setMistakeList] = useState<TutorContext[]>([]);
   const [selectedMistakeIndex, setSelectedMistakeIndex] = useState<number>(0);
-  const [activeAttemptTitle, setActiveAttemptTitle] = useState<string>('');
+  const [activeAttemptTitle, setActiveAttemptTitle] = useState<string>("");
 
   // Interactive Practice Question State
-  const [selectedPracticeOption, setSelectedPracticeOption] = useState<string | null>(null);
+  const [selectedPracticeOption, setSelectedPracticeOption] = useState<
+    string | null
+  >(null);
   const [practiceSubmitted, setPracticeSubmitted] = useState<boolean>(false);
 
   // UI state
@@ -72,7 +86,7 @@ export const AiTutor: React.FC = () => {
   const loadRecentAttempts = async () => {
     setLoadingAttempts(true);
     try {
-      const local = localStorage.getItem('learntrace_recent_attempts');
+      const local = localStorage.getItem("learntrace_recent_attempts");
       let combined: AttemptSummaryItem[] = [];
       if (local) {
         try {
@@ -88,7 +102,8 @@ export const AiTutor: React.FC = () => {
           {
             id: 1,
             assessment_id: 1,
-            assessment_title: 'LearnTrace Demo Assessment (Triangles & Real Numbers)',
+            assessment_title:
+              "LearnTrace Demo Assessment (Triangles & Real Numbers)",
             class_level: 10,
             score: 67,
             completed: true,
@@ -244,17 +259,18 @@ export const AiTutor: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-teal-800 font-semibold text-[11px] uppercase tracking-wider">
-              <GraduationCap className="w-4 h-4 text-teal-800" /> Socratic AI Tutor & Remediation Hub
+              <GraduationCap className="w-4 h-4 text-teal-800" /> Socratic AI
+              Tutor & Remediation Hub
             </div>
             <h1 className="text-lg sm:text-xl font-bold text-stone-900 mt-1 tracking-tight">
               {queryAttemptId
-                ? `Reviewing Attempt #${queryAttemptId}: ${activeAttemptTitle || 'Assessment'}`
-                : 'Personalized AI Tutoring & Misconception Remediation'}
+                ? `Reviewing Attempt #${queryAttemptId}: ${activeAttemptTitle || "Assessment"}`
+                : "Personalized AI Tutoring & Misconception Remediation"}
             </h1>
             <p className="text-xs text-stone-600 mt-0.5">
               {queryAttemptId
-                ? 'Targeted misconception breakdowns, ELI5 concept explanations, and adaptive practice questions for your errors.'
-                : 'Inspect your assessment attempts, resolve learning bottlenecks, and reinforce concepts with interactive practice.'}
+                ? "Targeted misconception breakdowns, ELI5 concept explanations, and adaptive practice questions for your errors."
+                : "Inspect your assessment attempts, resolve learning bottlenecks, and reinforce concepts with interactive practice."}
             </p>
           </div>
 
@@ -273,18 +289,18 @@ export const AiTutor: React.FC = () => {
               <span
                 className={`w-2 h-2 rounded-full ${
                   tutorOnline === true
-                    ? 'bg-emerald-700 animate-pulse'
+                    ? "bg-emerald-700 animate-pulse"
                     : tutorOnline === false
-                    ? 'bg-rose-700'
-                    : 'bg-amber-700'
+                      ? "bg-rose-700"
+                      : "bg-amber-700"
                 }`}
               />
               <span className="text-[11px] font-medium text-stone-600">
                 {tutorOnline === true
-                  ? 'AI Tutor Ready'
+                  ? "AI Tutor Ready"
                   : tutorOnline === false
-                  ? 'Tutor Offline'
-                  : 'Connecting...'}
+                    ? "Tutor Offline"
+                    : "Connecting..."}
               </span>
             </div>
           </div>
@@ -315,7 +331,9 @@ export const AiTutor: React.FC = () => {
                   Recent Assessment Attempts ({recentAttempts.length})
                 </h2>
               </div>
-              <span className="text-[11px] text-stone-500">Click any attempt to launch AI Tutoring on its mistakes</span>
+              <span className="text-[11px] text-stone-500">
+                Click any attempt to launch AI Tutoring on its mistakes
+              </span>
             </div>
 
             {loadingAttempts ? (
@@ -327,7 +345,7 @@ export const AiTutor: React.FC = () => {
                 <BookOpen className="w-8 h-8 mx-auto text-stone-400" />
                 <p className="text-xs">No assessment attempts recorded yet.</p>
                 <button
-                  onClick={() => navigate('/quiz')}
+                  onClick={() => navigate("/quiz")}
                   className="px-4 py-2 bg-teal-800 text-white text-xs font-semibold rounded-lg hover:bg-teal-900 transition-all"
                 >
                   Start Your First Quiz
@@ -348,7 +366,13 @@ export const AiTutor: React.FC = () => {
                             Attempt #{att.id} • Class {att.class_level || 10}
                           </Badge>
                           <Badge
-                            variant={att.score >= 80 ? 'emerald' : att.score >= 50 ? 'amber' : 'rose'}
+                            variant={
+                              att.score >= 80
+                                ? "emerald"
+                                : att.score >= 50
+                                  ? "amber"
+                                  : "rose"
+                            }
                             size="sm"
                           >
                             Score: {att.score}%
@@ -356,21 +380,31 @@ export const AiTutor: React.FC = () => {
                         </div>
 
                         <h3 className="font-bold text-sm text-stone-900 leading-snug">
-                          {att.assessment_title || `Assessment #${att.assessment_id}`}
+                          {att.assessment_title ||
+                            `Assessment #${att.assessment_id}`}
                         </h3>
 
                         <div className="flex items-center gap-3 text-xs text-stone-500 pt-1">
                           <span>Total: {att.total_questions ?? 10} Qs</span>
                           <span>•</span>
-                          <span className={hasMistakes ? 'text-rose-600 font-semibold' : 'text-emerald-600 font-semibold'}>
-                            {att.wrong_count ?? 0} Mistake{(att.wrong_count ?? 0) === 1 ? '' : 's'}
+                          <span
+                            className={
+                              hasMistakes
+                                ? "text-rose-600 font-semibold"
+                                : "text-emerald-600 font-semibold"
+                            }
+                          >
+                            {att.wrong_count ?? 0} Mistake
+                            {(att.wrong_count ?? 0) === 1 ? "" : "s"}
                           </span>
                         </div>
                       </div>
 
                       <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
                         <span className="text-[10px] text-stone-400 font-mono">
-                          {att.started_at ? new Date(att.started_at).toLocaleDateString() : 'Recent'}
+                          {att.started_at
+                            ? new Date(att.started_at).toLocaleDateString()
+                            : "Recent"}
                         </span>
 
                         <button
@@ -401,9 +435,12 @@ export const AiTutor: React.FC = () => {
             <div className="bg-white rounded-xl border border-stone-200/80 p-3 sm:p-4 shadow-xs space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">
-                  Mistakes from Attempt #{queryAttemptId} ({mistakeList.length} Found)
+                  Mistakes from Attempt #{queryAttemptId} ({mistakeList.length}{" "}
+                  Found)
                 </span>
-                <span className="text-[11px] text-stone-500">Click any question to get an AI breakdown</span>
+                <span className="text-[11px] text-stone-500">
+                  Click any question to get an AI breakdown
+                </span>
               </div>
 
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -413,12 +450,14 @@ export const AiTutor: React.FC = () => {
                     onClick={() => handleSelectMistake(idx)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                       selectedMistakeIndex === idx
-                        ? 'bg-stone-900 text-white shadow-xs'
-                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200'
+                        ? "bg-stone-900 text-white shadow-xs"
+                        : "bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200"
                     }`}
                   >
                     <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Mistake #{idx + 1}: {m.competency.name}</span>
+                    <span>
+                      Mistake #{idx + 1}: {m.competency.name}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -451,7 +490,9 @@ export const AiTutor: React.FC = () => {
                       <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block">
                         Competency / Topic
                       </span>
-                      <div className="font-bold text-stone-900 mt-0.5">{activeContext.competency.name}</div>
+                      <div className="font-bold text-stone-900 mt-0.5">
+                        {activeContext.competency.name}
+                      </div>
                     </div>
 
                     <div>
@@ -459,28 +500,30 @@ export const AiTutor: React.FC = () => {
                         Question
                       </span>
                       <div className="text-stone-800 bg-stone-50 p-2.5 rounded-lg border border-stone-200/70 mt-0.5 leading-relaxed font-medium">
-                        {activeContext.question.text}
+                        <FormattedMathText content={activeContext.question.text} />
                       </div>
                     </div>
 
                     <div className="space-y-1.5 pt-1">
-                      <div className="p-2 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-900 text-[11px]">
-                        <span className="font-bold block">Your Answer:</span>
-                        {activeContext.learner_answer}
+                      <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-900 text-xs">
+                        <span className="font-bold block text-[11px] text-rose-800 mb-0.5">Your Answer:</span>
+                        <FormattedMathText content={activeContext.learner_answer} />
                       </div>
 
-                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-[11px]">
-                        <span className="font-bold block">Correct Concept / Answer:</span>
-                        {activeContext.correct_answer}
+                      <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs">
+                        <span className="font-bold block text-[11px] text-emerald-800 mb-0.5">
+                          Correct Concept / Answer:
+                        </span>
+                        <FormattedMathText content={activeContext.correct_answer} />
                       </div>
                     </div>
 
                     {activeContext.detected_gap && (
-                      <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-900 text-[11px] flex items-start gap-2">
+                      <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                         <div>
-                          <span className="font-bold block">Detected Gap:</span>
-                          {activeContext.detected_gap.description}
+                          <span className="font-bold block text-[11px] text-amber-800 mb-0.5">Detected Gap:</span>
+                          <FormattedMathText content={activeContext.detected_gap.description} />
                         </div>
                       </div>
                     )}
@@ -511,9 +554,14 @@ export const AiTutor: React.FC = () => {
                   <div className="w-12 h-12 rounded-full bg-teal-50 text-teal-800 flex items-center justify-center mx-auto">
                     <Bot className="w-6 h-6" />
                   </div>
-                  <h3 className="font-bold text-stone-800 text-sm">Select a Question to Review</h3>
+                  <h3 className="font-bold text-stone-800 text-sm">
+                    Select a Question to Review
+                  </h3>
                   <p className="text-xs text-stone-500 max-w-md mx-auto">
-                    Choose one of the mistakes from the top bar or fill the context on the left to receive a structured pedagogical explanation, ELI5 summary, worked example, and practice question.
+                    Choose one of the mistakes from the top bar or fill the
+                    context on the left to receive a structured pedagogical
+                    explanation, ELI5 summary, worked example, and practice
+                    question.
                   </p>
                 </div>
               ) : (
@@ -522,11 +570,14 @@ export const AiTutor: React.FC = () => {
                   <div className="bg-white rounded-xl border border-teal-200/90 shadow-xs p-5 space-y-2.5">
                     <div className="flex items-center gap-2 text-teal-900 font-bold text-xs uppercase tracking-wide">
                       <Lightbulb className="w-4 h-4 text-amber-600 fill-amber-500" />
-                      <span>Why That Answer Happened (Misconception Analysis)</span>
+                      <span>
+                        Why That Answer Happened (Misconception Analysis)
+                      </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-stone-800 leading-relaxed font-medium">
-                      {tutorResponse.explanation}
-                    </p>
+                    <FormattedMathText
+                      content={tutorResponse.explanation}
+                      className="text-xs sm:text-sm text-stone-800 leading-relaxed font-medium"
+                    />
                   </div>
 
                   {/* Output 2: Simplified Concept (ELI5) */}
@@ -535,20 +586,21 @@ export const AiTutor: React.FC = () => {
                       <Sparkles className="w-4 h-4 text-teal-700" />
                       <span>Core Concept in Simple Terms</span>
                     </div>
-                    <p className="text-xs sm:text-sm text-stone-700 leading-relaxed bg-stone-50 p-3.5 rounded-lg border border-stone-200/60">
-                      {tutorResponse.simple_explanation}
-                    </p>
+                    <div className="text-xs sm:text-sm text-stone-700 leading-relaxed bg-stone-50/80 p-3.5 rounded-lg border border-stone-200/60">
+                      <FormattedMathText content={tutorResponse.simple_explanation} />
+                    </div>
                   </div>
 
                   {/* Output 3: Worked Example */}
-                  <div className="bg-white rounded-xl border border-stone-200/80 shadow-xs p-5 space-y-2.5">
+                  <div className="bg-white rounded-xl border border-stone-200/80 shadow-xs p-5 space-y-3">
                     <div className="flex items-center gap-2 text-stone-900 font-bold text-xs uppercase tracking-wide">
                       <FileCheck2 className="w-4 h-4 text-teal-800" />
                       <span>Step-by-Step Worked Example</span>
                     </div>
-                    <div className="text-xs sm:text-sm text-stone-800 whitespace-pre-line leading-relaxed bg-stone-50 p-3.5 rounded-lg border border-stone-200/60 font-mono">
-                      {tutorResponse.worked_example}
-                    </div>
+                    <FormattedMathText
+                      content={tutorResponse.worked_example}
+                      isWorkedExample={true}
+                    />
                   </div>
 
                   {/* Output 4: Interactive Practice Question */}
@@ -564,50 +616,63 @@ export const AiTutor: React.FC = () => {
                         </Badge>
                       </div>
 
-                      <p className="text-xs sm:text-sm font-semibold text-stone-900 leading-relaxed">
-                        {tutorResponse.practice_question.question}
-                      </p>
+                      <div className="text-xs sm:text-sm font-semibold text-stone-900 leading-relaxed">
+                        <FormattedMathText content={tutorResponse.practice_question.question} />
+                      </div>
 
                       {/* Options */}
                       <div className="space-y-2">
-                        {tutorResponse.practice_question.options.map((opt, idx) => {
-                          const isSelected = selectedPracticeOption === opt;
-                          const letter = String.fromCharCode(65 + idx);
-                          const isCorrectOpt = opt === tutorResponse.practice_question.correct_option;
+                        {tutorResponse.practice_question.options.map(
+                          (opt, idx) => {
+                            const isSelected = selectedPracticeOption === opt;
+                            const letter = String.fromCharCode(65 + idx);
+                            const isCorrectOpt =
+                              opt ===
+                              tutorResponse.practice_question.correct_option;
 
-                          let btnStyle = 'bg-stone-50 border-stone-200 hover:bg-stone-100 text-stone-800';
-                          if (practiceSubmitted) {
-                            if (isCorrectOpt) {
-                              btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 font-semibold ring-1 ring-emerald-500';
-                            } else if (isSelected && !isCorrectOpt) {
-                              btnStyle = 'bg-rose-50 border-rose-500 text-rose-950 font-semibold ring-1 ring-rose-500';
+                            let btnStyle =
+                              "bg-stone-50 border-stone-200 hover:bg-stone-100 text-stone-800";
+                            if (practiceSubmitted) {
+                              if (isCorrectOpt) {
+                                btnStyle =
+                                  "bg-emerald-50 border-emerald-500 text-emerald-950 font-semibold ring-1 ring-emerald-500";
+                              } else if (isSelected && !isCorrectOpt) {
+                                btnStyle =
+                                  "bg-rose-50 border-rose-500 text-rose-950 font-semibold ring-1 ring-rose-500";
+                              }
+                            } else if (isSelected) {
+                              btnStyle =
+                                "bg-teal-50 border-teal-800 text-teal-950 font-semibold ring-1 ring-teal-800";
                             }
-                          } else if (isSelected) {
-                            btnStyle = 'bg-teal-50 border-teal-800 text-teal-950 font-semibold ring-1 ring-teal-800';
-                          }
 
-                          return (
-                            <button
-                              key={idx}
-                              onClick={() => {
-                                if (!practiceSubmitted) setSelectedPracticeOption(opt);
-                              }}
-                              disabled={practiceSubmitted}
-                              className={`w-full text-left p-3 rounded-lg border text-xs transition-all flex items-center gap-3 ${btnStyle}`}
-                            >
-                              <span className="w-5 h-5 rounded flex items-center justify-center font-mono font-bold text-[11px] bg-white border border-stone-200">
-                                {letter}
-                              </span>
-                              <span className="flex-1">{opt}</span>
-                              {practiceSubmitted && isCorrectOpt && (
-                                <CheckCircle className="w-4 h-4 text-emerald-700" />
-                              )}
-                              {practiceSubmitted && isSelected && !isCorrectOpt && (
-                                <XCircle className="w-4 h-4 text-rose-700" />
-                              )}
-                            </button>
-                          );
-                        })}
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  if (!practiceSubmitted)
+                                    setSelectedPracticeOption(opt);
+                                }}
+                                disabled={practiceSubmitted}
+                                className={`w-full text-left p-3 rounded-lg border text-xs transition-all flex items-center gap-3 ${btnStyle}`}
+                              >
+                                <span className="w-5 h-5 rounded flex items-center justify-center font-mono font-bold text-[11px] bg-white border border-stone-200 flex-shrink-0">
+                                  {letter}
+                                </span>
+                                <div className="flex-1">
+                                  <FormattedMathText content={opt} />
+                                </div>
+                                {practiceSubmitted && isCorrectOpt && (
+                                  <CheckCircle className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                                )}
+                                {practiceSubmitted &&
+                                  isSelected &&
+                                  !isCorrectOpt && (
+                                    <XCircle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+                                  )}
+                              </button>
+                            );
+                          },
+                        )}
                       </div>
 
                       {/* Submission / Verification Box */}
@@ -615,7 +680,8 @@ export const AiTutor: React.FC = () => {
                         {!practiceSubmitted ? (
                           <button
                             onClick={() => {
-                              if (selectedPracticeOption) setPracticeSubmitted(true);
+                              if (selectedPracticeOption)
+                                setPracticeSubmitted(true);
                             }}
                             disabled={!selectedPracticeOption}
                             className="w-full sm:w-auto px-5 py-2 bg-teal-800 text-white text-xs font-semibold rounded-lg hover:bg-teal-900 disabled:opacity-50 transition-all shadow-xs"
@@ -626,29 +692,44 @@ export const AiTutor: React.FC = () => {
                           <div className="space-y-3 pt-2">
                             <div
                               className={`p-3 rounded-lg text-xs border ${
-                                selectedPracticeOption === tutorResponse.practice_question.correct_option
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
-                                  : 'bg-rose-50 border-rose-200 text-rose-950'
+                                selectedPracticeOption ===
+                                tutorResponse.practice_question.correct_option
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-950"
+                                    : "bg-rose-50 border-rose-200 text-rose-950"
                               }`}
                             >
                               <div className="font-bold mb-1 flex items-center gap-1.5">
-                                {selectedPracticeOption === tutorResponse.practice_question.correct_option ? (
+                                {selectedPracticeOption ===
+                                tutorResponse.practice_question
+                                  .correct_option ? (
                                   <>
                                     <CheckCircle className="w-4 h-4 text-emerald-700" />
-                                    <span>Correct! Great mastery of the concept.</span>
+                                    <span>
+                                      Correct! Great mastery of the concept.
+                                    </span>
                                   </>
                                 ) : (
                                   <>
                                     <XCircle className="w-4 h-4 text-rose-700" />
-                                    <span>
-                                      Not quite. The correct answer is: {tutorResponse.practice_question.correct_option}
-                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <span>The correct answer is:</span>
+                                      <FormattedMathText
+                                        content={
+                                          tutorResponse.practice_question
+                                            .correct_option
+                                        }
+                                      />
+                                    </div>
                                   </>
                                 )}
                               </div>
-                              <p className="text-[11px] text-stone-700 leading-relaxed">
-                                {tutorResponse.practice_question.explanation}
-                              </p>
+                              <div className="text-xs text-stone-700 leading-relaxed pt-1">
+                                <FormattedMathText
+                                  content={
+                                    tutorResponse.practice_question.explanation
+                                  }
+                                />
+                              </div>
                             </div>
 
                             <button
