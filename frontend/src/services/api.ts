@@ -132,6 +132,7 @@ export const documentsApi = {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 120000, // 120 seconds to allow PDF text extraction & chunk generation
       },
     );
     return response.data;
@@ -140,6 +141,7 @@ export const documentsApi = {
   getChunks: async (documentId: number): Promise<DocumentChunk[]> => {
     const response = await apiClient.get<DocumentChunk[]>("/chunks/", {
       params: { document_id: documentId },
+      timeout: 60000,
     });
     return response.data;
   },
@@ -168,6 +170,9 @@ export const documentsApi = {
       {
         chunk_ids: chunkIds,
         topic_id: topicId,
+      },
+      {
+        timeout: 60000,
       },
     );
     return response.data;

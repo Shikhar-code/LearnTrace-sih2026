@@ -27,9 +27,6 @@ export const AiTutor: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryAttemptId = searchParams.get('attempt_id') ? Number(searchParams.get('attempt_id')) : null;
 
-  // Mode: 'mistakes' (from quiz attempt) or 'ask_custom' (direct questions)
-  const [activeTab, setActiveTab] = useState<'mistakes' | 'ask_custom'>('mistakes');
-
   // Service Health State
   const [tutorOnline, setTutorOnline] = useState<boolean | null>(null);
 
@@ -42,7 +39,7 @@ export const AiTutor: React.FC = () => {
     (location.state as { tutorContext?: TutorContext })?.tutorContext || null
   );
   const [tutorResponse, setTutorResponse] = useState<TutorResponse | null>(null);
-  const [quizSummaryResponse, setQuizSummaryResponse] = useState<QuizTutorResponse | null>(null);
+  const [, setQuizSummaryResponse] = useState<QuizTutorResponse | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState<boolean>(false);
 
   // Attempt Multi-Mistake Navigation (if arriving from Quiz attempt)
@@ -53,13 +50,6 @@ export const AiTutor: React.FC = () => {
   // Interactive Practice Question State
   const [selectedPracticeOption, setSelectedPracticeOption] = useState<string | null>(null);
   const [practiceSubmitted, setPracticeSubmitted] = useState<boolean>(false);
-
-  // Manual Testing & Direct Context Entry State
-  const [manualTopicName, setManualTopicName] = useState('Triangles Similarity');
-  const [manualQuestionText, setManualQuestionText] = useState('Which condition proves two triangles similar?');
-  const [manualLearnerAnswer, setManualLearnerAnswer] = useState('Equal Area');
-  const [manualCorrectAnswer, setManualCorrectAnswer] = useState('AA (Angle-Angle) Similarity Criterion');
-  const [manualGap, setManualGap] = useState('Confusing congruence area equality with similarity proportionality.');
 
   // UI state
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -132,7 +122,7 @@ export const AiTutor: React.FC = () => {
     setLoadingExplanation(true);
     setErrorMessage(null);
     try {
-            try {
+      try {
         const mode2Res = await tutorApi.explainAttemptViaBackend(attemptId);
         setQuizSummaryResponse(mode2Res);
       } catch (e) {
@@ -183,7 +173,6 @@ export const AiTutor: React.FC = () => {
       }
 
       setMistakeList(contexts);
-      setActiveTab('mistakes');
       if (contexts.length > 0) {
         setSelectedMistakeIndex(0);
         setActiveContext(contexts[0]);
@@ -226,39 +215,6 @@ export const AiTutor: React.FC = () => {
     }
   };
 
-  // Handle Manual Form Submit
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const topicClean = manualTopicName.trim() || 'General Mathematics';
-    const questionClean = manualQuestionText.trim();
-    const learnerAnswerClean = manualLearnerAnswer.trim();
-    const correctAnswerClean = manualCorrectAnswer.trim();
-    const gapClean = manualGap.trim();
-
-    const ctx: TutorContext = {
-      competency: {
-        id: topicClean.toLowerCase().replace(/\s+/g, '_'),
-        name: topicClean,
-      },
-      question: {
-        id: `q_manual_${Date.now()}`,
-        text: questionClean,
-        options: [
-          correctAnswerClean,
-          learnerAnswerClean,
-          `Alternative option in ${topicClean}`,
-          `Distractor option in ${topicClean}`,
-        ],
-      },
-      learner_answer: learnerAnswerClean,
-      correct_answer: correctAnswerClean,
-      detected_gap: gapClean ? { description: gapClean } : null,
-    };
-
-    setActiveContext(ctx);
-    fetchExplanation(ctx);
-  };
-
   // Select an attempt from the Hub
   const handleSelectAttemptFromHub = (attId: number) => {
     setSearchParams({ attempt_id: String(attId) });
@@ -297,20 +253,31 @@ export const AiTutor: React.FC = () => {
             {queryAttemptId && (
               <button
                 onClick={handleBackToHub}
-                className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 border border-stone-200"
+                className="px-3.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold transition-all border border-stone-200"
               >
-                <History className="w-3.5 h-3.5" />
-                <span>All Attempts Hub</span>
+                ← All Attempts Hub
               </button>
             )}
 
-            <Badge
-              variant={tutorOnline ? 'emerald' : tutorOnline === false ? 'rose' : 'stone'}
-              size="sm"
-            >
-              <Bot className="w-3.5 h-3.5" />
-              <span>{tutorOnline ? 'AI Tutor Online' : 'AI Tutor Connecting...'}</span>
-            </Badge>
+            {/* Health Badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-stone-50 border border-stone-200/80 rounded-lg text-xs">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  tutorOnline === true
+                    ? 'bg-emerald-700 animate-pulse'
+                    : tutorOnline === false
+                    ? 'bg-rose-700'
+                    : 'bg-amber-700'
+                }`}
+              />
+              <span className="text-[11px] font-medium text-stone-600">
+                {tutorOnline === true
+                  ? 'AI Tutor Ready'
+                  : tutorOnline === false
+                  ? 'Tutor Offline'
+                  : 'Connecting...'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -358,51 +325,54 @@ export const AiTutor: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {recentAttempts.map((att) => {
-                  const isPerfect = att.wrong_count === 0 && att.completed;
+                  const hasMistakes = (att.wrong_count ?? 0) > 0;
                   return (
                     <div
                       key={att.id}
-                      className="bg-stone-50/80 border border-stone-200 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-teal-600/60 hover:bg-white transition-all shadow-2xs group"
+                      className="p-4 sm:p-5 rounded-xl border border-stone-200 hover:border-stone-300 transition-all bg-white hover:shadow-xs flex flex-col justify-between gap-4"
                     >
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <Badge variant="stone" size="sm">
-                            Class {att.class_level}
+                            Attempt #{att.id} • Class {att.class_level || 10}
                           </Badge>
-                          <Badge variant={att.score >= 80 ? 'emerald' : att.score >= 50 ? 'teal' : 'rose'} size="sm">
+                          <Badge
+                            variant={att.score >= 80 ? 'emerald' : att.score >= 50 ? 'amber' : 'rose'}
+                            size="sm"
+                          >
                             Score: {att.score}%
                           </Badge>
                         </div>
 
-                        <h3 className="font-bold text-xs sm:text-sm text-stone-900 group-hover:text-teal-900 transition-colors">
-                          {att.assessment_title}
+                        <h3 className="font-bold text-sm text-stone-900 leading-snug">
+                          {att.assessment_title || `Assessment #${att.assessment_id}`}
                         </h3>
 
-                        <div className="flex items-center gap-3 text-[11px] text-stone-500">
-                          <span>Attempt #{att.id}</span>
+                        <div className="flex items-center gap-3 text-xs text-stone-500 pt-1">
+                          <span>Total: {att.total_questions ?? 10} Qs</span>
                           <span>•</span>
-                          <span>{att.total_questions} Questions</span>
-                          <span>•</span>
-                          <span className={att.wrong_count > 0 ? 'text-rose-600 font-semibold' : 'text-emerald-600 font-semibold'}>
-                            {att.wrong_count > 0 ? `${att.wrong_count} Mistakes` : '100% Correct'}
+                          <span className={hasMistakes ? 'text-rose-600 font-semibold' : 'text-emerald-600 font-semibold'}>
+                            {att.wrong_count ?? 0} Mistake{(att.wrong_count ?? 0) === 1 ? '' : 's'}
                           </span>
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleSelectAttemptFromHub(att.id)}
-                        className={`w-full py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-2xs ${
-                          att.wrong_count > 0
-                            ? 'bg-stone-900 text-white hover:bg-stone-800'
-                            : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
-                        }`}
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>{att.wrong_count > 0 ? `Review ${att.wrong_count} Mistakes with AI Tutor` : 'Review Questions with AI Tutor'}</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+                        <span className="text-[10px] text-stone-400 font-mono">
+                          {att.started_at ? new Date(att.started_at).toLocaleDateString() : 'Recent'}
+                        </span>
+
+                        <button
+                          onClick={() => handleSelectAttemptFromHub(att.id)}
+                          className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Review Mistakes with AI Tutor</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -448,7 +418,7 @@ export const AiTutor: React.FC = () => {
 
           {/* Main 2-Column Interface */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
-            {/* Left Column: Context Card / Manual Input (4 cols) */}
+            {/* Left Column: Context Card (4 cols) */}
             <div className="lg:col-span-4 space-y-4">
               <div className="bg-white rounded-xl border border-stone-200/80 p-4 sm:p-5 shadow-xs space-y-4">
                 {/* Header */}
@@ -459,28 +429,14 @@ export const AiTutor: React.FC = () => {
                       Assessment Context
                     </h2>
                   </div>
-                  {mistakeList.length > 0 && activeTab === 'mistakes' && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('ask_custom')}
-                      className="text-[11px] font-semibold text-teal-800 hover:text-teal-950 transition-colors"
-                    >
-                      + Manual Entry
-                    </button>
-                  )}
-                  {mistakeList.length > 0 && activeTab === 'ask_custom' && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('mistakes')}
-                      className="text-[11px] font-semibold text-teal-800 hover:text-teal-950 transition-colors"
-                    >
-                      ← Back to Mistakes
-                    </button>
-                  )}
                 </div>
 
-                {/* TAB 1: Quiz Attempt Mistake View */}
-                {activeTab === 'mistakes' && activeContext ? (
+                {/* Quiz Attempt Mistake View */}
+                {!activeContext ? (
+                  <div className="py-8 text-center">
+                    <LoadingSpinner label="Loading mistake context from assessment..." />
+                  </div>
+                ) : (
                   <div className="space-y-3 text-xs">
                     <div>
                       <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block">
@@ -531,91 +487,6 @@ export const AiTutor: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                ) : (
-                  /* TAB 2: Direct Context / Manual Entry Form */
-                  <form onSubmit={handleManualSubmit} className="space-y-3.5 text-xs">
-                    <p className="text-[11px] text-stone-500 leading-relaxed">
-                      Enter an assessment context or question to get an instant AI Socratic lesson:
-                    </p>
-
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
-                        Topic / Competency
-                      </label>
-                      <input
-                        type="text"
-                        value={manualTopicName}
-                        onChange={(e) => setManualTopicName(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
-                        placeholder="e.g. Triangles Similarity, Real Numbers"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
-                        Question Text
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={manualQuestionText}
-                        onChange={(e) => setManualQuestionText(e.target.value)}
-                        className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800 leading-relaxed"
-                        placeholder="e.g. Which condition proves two triangles similar?"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
-                        Your Answer (Incorrect Choice)
-                      </label>
-                      <input
-                        type="text"
-                        value={manualLearnerAnswer}
-                        onChange={(e) => setManualLearnerAnswer(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
-                        placeholder="e.g. Equal Area"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
-                        Correct Answer
-                      </label>
-                      <input
-                        type="text"
-                        value={manualCorrectAnswer}
-                        onChange={(e) => setManualCorrectAnswer(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
-                        placeholder="e.g. AA (Angle-Angle) Similarity Criterion"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
-                        Specific Confusion / Detected Gap <span className="text-stone-400 font-normal">(Optional)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={manualGap}
-                        onChange={(e) => setManualGap(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
-                        placeholder="e.g. Confused area equality with similarity proportionality"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loadingExplanation || !manualQuestionText.trim()}
-                      className="w-full py-2.5 bg-teal-800 text-white font-semibold rounded-lg text-xs hover:bg-teal-900 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                      <span>Explain This Mistake</span>
-                    </button>
-                  </form>
                 )}
               </div>
             </div>
@@ -666,97 +537,125 @@ export const AiTutor: React.FC = () => {
                       <FileCheck2 className="w-4 h-4 text-teal-800" />
                       <span>Step-by-Step Worked Example</span>
                     </div>
-                    <div className="text-xs sm:text-sm text-stone-800 leading-relaxed bg-teal-50/40 p-3.5 rounded-lg border border-teal-100 font-mono whitespace-pre-line">
+                    <div className="text-xs sm:text-sm text-stone-800 whitespace-pre-line leading-relaxed bg-stone-50 p-3.5 rounded-lg border border-stone-200/60 font-mono">
                       {tutorResponse.worked_example}
                     </div>
                   </div>
 
-                  {/* Output 4: Interactive Adaptive Practice Question */}
-                  <div className="bg-white rounded-xl border-2 border-teal-600/60 shadow-md p-5 sm:p-6 space-y-4">
-                    <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-                        <h3 className="font-bold text-xs sm:text-sm text-stone-900 uppercase tracking-wide">
-                          Reinforcement Practice Question
-                        </h3>
-                      </div>
-                      <Badge variant="teal" size="sm">
-                        Adaptive Test
-                      </Badge>
-                    </div>
-
-                    <p className="text-xs sm:text-sm font-semibold text-stone-900 leading-relaxed">
-                      {tutorResponse.practice_question.question}
-                    </p>
-
-                    {/* Practice Options */}
-                    <div className="space-y-2">
-                      {tutorResponse.practice_question.options.map((opt, idx) => {
-                        const isSelected = selectedPracticeOption === opt;
-                        const isCorrect = opt === tutorResponse.practice_question.correct_option;
-                        const letter = String.fromCharCode(65 + idx);
-
-                        let buttonClass = 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50';
-                        if (practiceSubmitted) {
-                          if (isCorrect) {
-                            buttonClass = 'bg-emerald-50 border-emerald-500 text-emerald-950 font-semibold ring-1 ring-emerald-500';
-                          } else if (isSelected && !isCorrect) {
-                            buttonClass = 'bg-rose-50 border-rose-400 text-rose-950 font-medium';
-                          }
-                        } else if (isSelected) {
-                          buttonClass = 'bg-teal-50 border-teal-600 text-teal-950 ring-1 ring-teal-600 font-semibold';
-                        }
-
-                        return (
-                          <button
-                            key={idx}
-                            disabled={practiceSubmitted}
-                            onClick={() => setSelectedPracticeOption(opt)}
-                            className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center gap-3 ${buttonClass}`}
-                          >
-                            <span className="w-6 h-6 rounded-lg bg-stone-100 flex items-center justify-center font-mono font-bold text-stone-600 text-xs">
-                              {letter}
-                            </span>
-                            <span className="flex-1 leading-snug">{opt}</span>
-                            {practiceSubmitted && isCorrect && (
-                              <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                            )}
-                            {practiceSubmitted && isSelected && !isCorrect && (
-                              <XCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Practice Action & Explanation */}
-                    {!practiceSubmitted ? (
-                      <button
-                        onClick={() => setPracticeSubmitted(true)}
-                        disabled={!selectedPracticeOption}
-                        className="w-full py-2.5 bg-teal-800 text-white rounded-lg text-xs font-semibold hover:bg-teal-900 disabled:opacity-50 transition-all shadow-xs"
-                      >
-                        Check Practice Answer
-                      </button>
-                    ) : (
-                      <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-2">
-                        <div className="flex items-center gap-1.5 font-bold">
-                          {selectedPracticeOption === tutorResponse.practice_question.correct_option ? (
-                            <span className="text-emerald-700 flex items-center gap-1">
-                              <CheckCircle className="w-4 h-4" /> Correct! Excellent understanding.
-                            </span>
-                          ) : (
-                            <span className="text-rose-700 flex items-center gap-1">
-                              <XCircle className="w-4 h-4" /> Not quite right. Here is the breakdown:
-                            </span>
-                          )}
+                  {/* Output 4: Interactive Practice Question */}
+                  {tutorResponse.practice_question && (
+                    <div className="bg-white rounded-xl border border-stone-200/80 shadow-xs p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                        <div className="flex items-center gap-2 text-stone-900 font-bold text-xs uppercase tracking-wide">
+                          <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
+                          <span>Adaptive Reinforcement Question</span>
                         </div>
-                        <p className="text-[11px] text-stone-600 leading-relaxed">
-                          {tutorResponse.practice_question.explanation}
-                        </p>
+                        <Badge variant="teal" size="sm">
+                          Instant Check
+                        </Badge>
                       </div>
-                    )}
-                  </div>
+
+                      <p className="text-xs sm:text-sm font-semibold text-stone-900 leading-relaxed">
+                        {tutorResponse.practice_question.question}
+                      </p>
+
+                      {/* Options */}
+                      <div className="space-y-2">
+                        {tutorResponse.practice_question.options.map((opt, idx) => {
+                          const isSelected = selectedPracticeOption === opt;
+                          const letter = String.fromCharCode(65 + idx);
+                          const isCorrectOpt = opt === tutorResponse.practice_question.correct_option;
+
+                          let btnStyle = 'bg-stone-50 border-stone-200 hover:bg-stone-100 text-stone-800';
+                          if (practiceSubmitted) {
+                            if (isCorrectOpt) {
+                              btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 font-semibold ring-1 ring-emerald-500';
+                            } else if (isSelected && !isCorrectOpt) {
+                              btnStyle = 'bg-rose-50 border-rose-500 text-rose-950 font-semibold ring-1 ring-rose-500';
+                            }
+                          } else if (isSelected) {
+                            btnStyle = 'bg-teal-50 border-teal-800 text-teal-950 font-semibold ring-1 ring-teal-800';
+                          }
+
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                if (!practiceSubmitted) setSelectedPracticeOption(opt);
+                              }}
+                              disabled={practiceSubmitted}
+                              className={`w-full text-left p-3 rounded-lg border text-xs transition-all flex items-center gap-3 ${btnStyle}`}
+                            >
+                              <span className="w-5 h-5 rounded flex items-center justify-center font-mono font-bold text-[11px] bg-white border border-stone-200">
+                                {letter}
+                              </span>
+                              <span className="flex-1">{opt}</span>
+                              {practiceSubmitted && isCorrectOpt && (
+                                <CheckCircle className="w-4 h-4 text-emerald-700" />
+                              )}
+                              {practiceSubmitted && isSelected && !isCorrectOpt && (
+                                <XCircle className="w-4 h-4 text-rose-700" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Submission / Verification Box */}
+                      <div className="pt-2">
+                        {!practiceSubmitted ? (
+                          <button
+                            onClick={() => {
+                              if (selectedPracticeOption) setPracticeSubmitted(true);
+                            }}
+                            disabled={!selectedPracticeOption}
+                            className="w-full sm:w-auto px-5 py-2 bg-teal-800 text-white text-xs font-semibold rounded-lg hover:bg-teal-900 disabled:opacity-50 transition-all shadow-xs"
+                          >
+                            Check Answer
+                          </button>
+                        ) : (
+                          <div className="space-y-3 pt-2">
+                            <div
+                              className={`p-3 rounded-lg text-xs border ${
+                                selectedPracticeOption === tutorResponse.practice_question.correct_option
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                                  : 'bg-rose-50 border-rose-200 text-rose-950'
+                              }`}
+                            >
+                              <div className="font-bold mb-1 flex items-center gap-1.5">
+                                {selectedPracticeOption === tutorResponse.practice_question.correct_option ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 text-emerald-700" />
+                                    <span>Correct! Great mastery of the concept.</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="w-4 h-4 text-rose-700" />
+                                    <span>
+                                      Not quite. The correct answer is: {tutorResponse.practice_question.correct_option}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-stone-700 leading-relaxed">
+                                {tutorResponse.practice_question.explanation}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                setSelectedPracticeOption(null);
+                                setPracticeSubmitted(false);
+                              }}
+                              className="px-3.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-medium transition-all"
+                            >
+                              Try Question Again
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

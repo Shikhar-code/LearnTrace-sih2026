@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from core.database import get_db
@@ -18,10 +18,10 @@ router = APIRouter(
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    source_name: str = "NCERT",
-    class_level: int = 10,
-    subject_name: str = "Mathematics",
-    chapter_title: str | None = None,
+    source_name: str = Form("NCERT"),
+    class_level: int = Form(10),
+    subject_name: str = Form("Mathematics"),
+    chapter_title: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     # 1. Validate file
@@ -188,6 +188,7 @@ def list_document_catalogue(
             "subject": document.subject.name,
             "source_url": document.source_url,
             "status": document.document_status,
+            "chunks_count": len(document.chunks),
         }
         for document in documents
     ]    
