@@ -3,38 +3,15 @@ TutorService — application logic layer for the AI Tutor.
 
 Responsibility
 --------------
-Accept a validated TutorContext and return a TutorResponse.
-
-Pipeline (Phase 2 / Phase 3)
------------------------------
-    TutorService.explain()
-        ↓
-    If TUTOR_MOCK_MODE=true  →  _generate_mock()   (no LLM, deterministic)
-    If TUTOR_MOCK_MODE=false →  _generate_with_llm()
-                                    ↓
-                                PromptService (build_tutor_prompt)
-                                    ↓
-                                LLMService.generate()
-                                    ↓
-                                GeminiProvider
-                                    ↓
-                                Validated TutorResponse
-
-The API route and TutorResponse schema are unchanged from Phase 1.
-
-Phase 3 changes
----------------
-- _generate_with_llm() passes the original question text to LLMService
-  so the response validator can reject identical practice questions.
-- _generate_mock() is fully context-aware: all fields reference the
-  actual competency, learner answer, and correct answer from the context.
-  No subject-specific content is hard-coded.
+Accept a validated TutorContext (Mode 1) or QuizTutorContext (Mode 2) and return structured responses.
 """
 
 from app.core.config import settings
 from app.core.exceptions import LLMMisconfiguredError, LLMProviderError, LLMResponseError
 from app.core.logging import get_logger
+from app.prompts.quiz_tutor import QUIZ_TUTOR_SYSTEM_PROMPT, build_quiz_tutor_prompt
 from app.prompts.tutor import TUTOR_SYSTEM_PROMPT, build_tutor_prompt
+from app.schemas.quiz_tutor import QuizMistakeExplanation, QuizTutorContext, QuizTutorResponse
 from app.schemas.tutor import PracticeQuestion, TutorContext, TutorResponse
 from app.services.llm_service import LLMService
 
@@ -45,30 +22,11 @@ _llm_service = LLMService()
 
 
 class TutorService:
-    """Orchestrates the tutoring pipeline for a single interaction."""
+    """Orchestrates the tutoring pipeline for single-question and post-quiz requests."""
 
     def explain(self, context: TutorContext) -> TutorResponse:
         """
-        Generate a tutoring response for the given context.
-
-        Parameters
-        ----------
-        context:
-            Validated TutorContext supplied by the LearnTrace backend.
-
-        Returns
-        -------
-        TutorResponse
-            Structured tutoring output.
-
-        Raises
-        ------
-        LLMMisconfiguredError
-            If real mode is requested but the LLM is not configured.
-        LLMProviderError
-            If the LLM provider call fails.
-        LLMResponseError
-            If the LLM returns an unrecoverable malformed response.
+        Generate a tutoring response for Mode 1 (single question).
         """
         logger.debug(
             "TutorService.explain | mock=%s competency=%s question=%s",
@@ -83,17 +41,44 @@ class TutorService:
 
         return self._generate_with_llm(context)
 
+    def explain_quiz(self, context: QuizTutorContext) -> QuizTutorResponse:
+        """
+        Generate a post-quiz explanation response for Mode 2 (completed quiz).
+        """
+        incorrect_items = [q for q in context.questions if not q.is_correct]
+
+        logger.info(
+            "TutorService.explain_quiz | attempt_id=%s total=%d incorrect=%d mock=%s",
+            context.attempt_id,
+            len(context.questions),
+            len(incorrect_items),
+            settings.TUTOR_MOCK_MODE,
+        )
+
+        # Token efficiency guarantee: 100% score -> 0 LLM calls!
+        if len(incorrect_items) == 0:
+            logger.info("Student score is 100%%. Returning zero mistakes without LLM call.")
+            return QuizTutorResponse(
+                attempt_id=context.attempt_id,
+                total_questions=len(context.questions),
+                incorrect_count=0,
+                mistakes=[],
+            )
+
+        if settings.TUTOR_MOCK_MODE:
+            logger.debug("Mock mode enabled — returning placeholder quiz response.")
+            return self._generate_quiz_mock(context)
+
+        system_prompt = QUIZ_TUTOR_SYSTEM_PROMPT
+        user_prompt = build_quiz_tutor_prompt(context)
+
+        return _llm_service.generate_quiz(system_prompt, user_prompt, context)
+
     # ------------------------------------------------------------------ #
     # Private helpers
     # ------------------------------------------------------------------ #
 
     def _generate_with_llm(self, context: TutorContext) -> TutorResponse:
-        """
-        Build prompts and call the LLM service to produce a real response.
-
-        The original question text is forwarded so the response validator
-        can reject a practice question that is identical to the original.
-        """
         system_prompt = TUTOR_SYSTEM_PROMPT
         user_prompt = build_tutor_prompt(context)
 
@@ -110,24 +95,6 @@ class TutorService:
         )
 
     def _generate_mock(self, context: TutorContext) -> TutorResponse:
-        """
-        Return a deterministic mock TutorResponse without calling any LLM.
-
-        Phase 3 (revised): uses clearly marked [MOCK] placeholder language so
-        that the mock output cannot be mistaken for genuine tutoring content
-        and cannot prime a real LLM with vocabulary-style template patterns.
-
-        All fields still reference the actual competency, question, learner
-        answer, and correct answer from the supplied TutorContext, making the
-        mock representative for any domain or question type.
-
-        Guarantees
-        ----------
-        - All fields meet the response validator's minimum length floors.
-        - practice_question has exactly four distinct options with a valid
-          correct_option that is different from the original question text.
-        - No vocabulary-substitution patterns that could mislead a real LLM.
-        """
         competency_name = context.competency.name
         correct_answer = context.correct_answer
         learner_answer = context.learner_answer
@@ -173,4 +140,30 @@ class TutorService:
                     f"about {competency_name}."
                 ),
             ),
+        )
+
+    def _generate_quiz_mock(self, context: QuizTutorContext) -> QuizTutorResponse:
+        incorrect_items = [q for q in context.questions if not q.is_correct]
+
+        mistakes = []
+        for q in incorrect_items:
+            mistakes.append(
+                QuizMistakeExplanation(
+                    question_id=q.question_id,
+                    question_text=q.question_text,
+                    topic=q.topic,
+                    student_answer=q.student_answer,
+                    correct_answer=q.correct_answer,
+                    explanation=(
+                        f"[MOCK] You selected '{q.student_answer}' for question '{q.question_text}'. "
+                        f"The correct answer is '{q.correct_answer}' because of core topic principles."
+                    ),
+                )
+            )
+
+        return QuizTutorResponse(
+            attempt_id=context.attempt_id,
+            total_questions=len(context.questions),
+            incorrect_count=len(incorrect_items),
+            mistakes=mistakes,
         )

@@ -12,7 +12,7 @@ from routes.attempts import router as attempts_router
 from routes.mastery import router as mastery_router
 from routes.intelligence import router as intelligence_router
 from routes.ai_quizzes import router as ai_quizzes_router
-
+from routes.tutor import router as tutor_router
 
 
 # Import all models so SQLAlchemy knows about every table.
@@ -42,6 +42,7 @@ app = FastAPI(
     description="SIH 2026 Backend",
     version="1.0.0"
 )
+
 app.include_router(documents_router)
 app.include_router(topics_router)
 app.include_router(chunks_router)
@@ -52,6 +53,8 @@ app.include_router(attempts_router)
 app.include_router(mastery_router)
 app.include_router(intelligence_router)
 app.include_router(ai_quizzes_router)
+app.include_router(tutor_router)
+
 
 @app.get("/")
 def root():
@@ -83,6 +86,3 @@ def database_test():
             "status": "error",
             "message": str(e)
         }
-from routes.ai_quizzes import router as ai_quizzes_router
-
-app.include_router(ai_quizzes_router)

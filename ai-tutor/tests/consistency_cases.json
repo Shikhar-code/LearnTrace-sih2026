@@ -1,0 +1,272 @@
+[
+  {
+    "question_id": "op_precedence_1",
+    "competency": {
+      "id": "arithmetic_ops",
+      "name": "Operator Precedence"
+    },
+    "question": {
+      "id": "q_op_1",
+      "text": "What is the value of 2 + 3 * 4?",
+      "options": [
+        "14",
+        "20",
+        "24",
+        "10"
+      ]
+    },
+    "learner_answer": "20",
+    "correct_answer": "14",
+    "detected_gap": {
+      "description": "Learner evaluated addition before multiplication (left-to-right order without precedence)."
+    },
+    "verification": {
+      "type": "math",
+      "expected_answer": "14",
+      "learner_answer": "20"
+    }
+  },
+  {
+    "question_id": "pct_calc_1",
+    "competency": {
+      "id": "percentage_calc",
+      "name": "Percentage and Fraction Calculation"
+    },
+    "question": {
+      "id": "q_pct_1",
+      "text": "What is 15% of 200?",
+      "options": [
+        "30",
+        "25",
+        "35",
+        "15"
+      ]
+    },
+    "learner_answer": "25",
+    "correct_answer": "30",
+    "detected_gap": {
+      "description": "Learner calculated 200 / 8 instead of 200 * 0.15."
+    },
+    "verification": {
+      "type": "math",
+      "expected_answer": "30",
+      "learner_answer": "25"
+    }
+  },
+  {
+    "question_id": "cs_recursion_1",
+    "competency": {
+      "id": "cs_recursion",
+      "name": "Recursive Functions and Base Cases"
+    },
+    "question": {
+      "id": "q_rec_1",
+      "text": "In a recursive function calculating the factorial of n (where n >= 0), what is the correct base case?",
+      "options": [
+        "If n == 0 or n == 1, return 1",
+        "If n == 0, return 0",
+        "If n > 1, return n * factorial(n - 1)",
+        "No base case is required if n is non-negative"
+      ]
+    },
+    "learner_answer": "If n == 0, return 0",
+    "correct_answer": "If n == 0 or n == 1, return 1",
+    "detected_gap": {
+      "description": "Learner confused base case return value of 0! and 1! with 0."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "If n == 0 or n == 1, return 1",
+      "learner_answer": "If n == 0, return 0"
+    }
+  },
+  {
+    "question_id": "cs_pointers_1",
+    "competency": {
+      "id": "cs_pointers",
+      "name": "Pointers and Memory Dereferencing"
+    },
+    "question": {
+      "id": "q_ptr_1",
+      "text": "In C++, what does the dereference operator (*) do when applied to a pointer variable p (e.g. *p)?",
+      "options": [
+        "Accesses the value stored at the memory address stored in p",
+        "Returns the memory address of pointer variable p itself",
+        "Allocates a new block of memory on the heap for p",
+        "Deallocates the memory pointed to by p"
+      ]
+    },
+    "learner_answer": "Returns the memory address of pointer variable p itself",
+    "correct_answer": "Accesses the value stored at the memory address stored in p",
+    "detected_gap": {
+      "description": "Learner confused the dereference operator (*) with the address-of operator (&)."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "Accesses the value stored at the memory address stored in p",
+      "learner_answer": "Returns the memory address of pointer variable p itself"
+    }
+  },
+  {
+    "question_id": "cs_dbms_norm_1",
+    "competency": {
+      "id": "dbms_normalization",
+      "name": "Database Normalization Forms"
+    },
+    "question": {
+      "id": "q_norm_1",
+      "text": "Which database Normal Form specifically requires eliminating partial functional dependencies on a composite primary key?",
+      "options": [
+        "Second Normal Form (2NF)",
+        "First Normal Form (1NF)",
+        "Third Normal Form (3NF)",
+        "Boyce-Codd Normal Form (BCNF)"
+      ]
+    },
+    "learner_answer": "First Normal Form (1NF)",
+    "correct_answer": "Second Normal Form (2NF)",
+    "detected_gap": {
+      "description": "Learner confused 1NF (atomic values requirement) with 2NF (full functional dependency requirement)."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "Second Normal Form (2NF)",
+      "learner_answer": "First Normal Form (1NF)"
+    }
+  },
+  {
+    "question_id": "cs_os_deadlock_1",
+    "competency": {
+      "id": "os_deadlocks",
+      "name": "Operating System Deadlock Conditions"
+    },
+    "question": {
+      "id": "q_dl_1",
+      "text": "Which of the following is NOT one of Coffman's four necessary conditions for a deadlock to occur?",
+      "options": [
+        "Preemption",
+        "Mutual Exclusion",
+        "Hold and Wait",
+        "Circular Wait"
+      ]
+    },
+    "learner_answer": "Hold and Wait",
+    "correct_answer": "Preemption",
+    "detected_gap": {
+      "description": "Learner failed to recognize that 'No Preemption' (not Preemption) is the required condition for deadlock."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "Preemption",
+      "learner_answer": "Hold and Wait"
+    }
+  },
+  {
+    "question_id": "concept_networking_1",
+    "competency": {
+      "id": "net_osi_layers",
+      "name": "OSI Model Architecture and Protocols"
+    },
+    "question": {
+      "id": "q_net_1",
+      "text": "At which layer of the OSI model does the Transmission Control Protocol (TCP) operate?",
+      "options": [
+        "Transport Layer (Layer 4)",
+        "Network Layer (Layer 3)",
+        "Data Link Layer (Layer 2)",
+        "Application Layer (Layer 7)"
+      ]
+    },
+    "learner_answer": "Network Layer (Layer 3)",
+    "correct_answer": "Transport Layer (Layer 4)",
+    "detected_gap": {
+      "description": "Learner confused Network Layer (IP protocol) with Transport Layer (TCP protocol)."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "Transport Layer (Layer 4)",
+      "learner_answer": "Network Layer (Layer 3)"
+    }
+  },
+  {
+    "question_id": "concept_algo_1",
+    "competency": {
+      "id": "algo_sorting_complexity",
+      "name": "Sorting Algorithm Time Complexity"
+    },
+    "question": {
+      "id": "q_algo_1",
+      "text": "What is the worst-case time complexity of the standard Quicksort algorithm when using the first element as pivot on an already sorted array?",
+      "options": [
+        "O(n^2)",
+        "O(n log n)",
+        "O(n)",
+        "O(log n)"
+      ]
+    },
+    "learner_answer": "O(n log n)",
+    "correct_answer": "O(n^2)",
+    "detected_gap": {
+      "description": "Learner assumed average-case time complexity O(n log n) applies to the worst-case unbalanced partition scenario."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "O(n^2)",
+      "learner_answer": "O(n log n)"
+    }
+  },
+  {
+    "question_id": "def_idempotency_1",
+    "competency": {
+      "id": "api_idempotency",
+      "name": "REST API Design and Principles"
+    },
+    "question": {
+      "id": "q_def_1",
+      "text": "In RESTful API design, what does it mean for an HTTP method to be idempotent?",
+      "options": [
+        "Making multiple identical requests has the same effect on the server state as making a single request",
+        "The request method always returns an HTTP 200 OK response code",
+        "The server executes the request asynchronously in the background",
+        "The client must send an authorization token with every request"
+      ]
+    },
+    "learner_answer": "The request method always returns an HTTP 200 OK response code",
+    "correct_answer": "Making multiple identical requests has the same effect on the server state as making a single request",
+    "detected_gap": {
+      "description": "Learner confused HTTP status response codes with server state side-effect behavior."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "Making multiple identical requests has the same effect on the server state as making a single request",
+      "learner_answer": "The request method always returns an HTTP 200 OK response code"
+    }
+  },
+  {
+    "question_id": "misconception_pass_by_val_1",
+    "competency": {
+      "id": "py_parameter_passing",
+      "name": "Python Object Passing Semantics"
+    },
+    "question": {
+      "id": "q_misc_1",
+      "text": "In Python, if a function receives a list argument lst and calls lst.append(42) inside the function body, what is observed in the caller's scope after the function returns?",
+      "options": [
+        "The caller's list is modified because Python passes object references",
+        "The caller's list remains unchanged because Python creates a local copy of arguments",
+        "A TypeError is raised because lists are immutable in Python",
+        "The list becomes empty because argument scope is destroyed"
+      ]
+    },
+    "learner_answer": "The caller's list remains unchanged because Python creates a local copy of arguments",
+    "correct_answer": "The caller's list is modified because Python passes object references",
+    "detected_gap": {
+      "description": "Learner assumed pass-by-value deep copying occurs rather than passing references to mutable objects."
+    },
+    "verification": {
+      "type": "conceptual",
+      "expected_answer": "The caller's list is modified because Python passes object references",
+      "learner_answer": "The caller's list remains unchanged because Python creates a local copy of arguments"
+    }
+  }
+]

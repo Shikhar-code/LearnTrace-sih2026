@@ -23,13 +23,14 @@ env/
 *.pem
 
 # ------------------------------------------------------------------ #
-# pytest / coverage
+# pytest / coverage / test artifacts
 # ------------------------------------------------------------------ #
 .pytest_cache/
 .coverage
 htmlcov/
 coverage.xml
 *.xml
+tests/consistency_results/
 
 # ------------------------------------------------------------------ #
 # mypy / type checking
