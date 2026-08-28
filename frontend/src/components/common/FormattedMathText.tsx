@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import katex from 'katex';
+import React, { useMemo } from "react";
+import katex from "katex";
 
 interface FormattedMathTextProps {
   content: string;
@@ -13,7 +13,7 @@ interface FormattedMathTextProps {
  */
 export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
   content,
-  className = '',
+  className = "",
   isWorkedExample = false,
 }) => {
   if (!content) return null;
@@ -24,7 +24,7 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
       return katex.renderToString(math.trim(), {
         displayMode,
         throwOnError: false,
-        output: 'htmlAndMathml',
+        output: "htmlAndMathml",
       });
     } catch {
       return math;
@@ -39,7 +39,8 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
     // 3. Bold: **...**
     // 4. Inline code: `...`
     // 5. Italic: *...*
-    const tokenRegex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$(?:\\\$|[^\$])+?\$|\\\([\s\S]*?\\\)|\*\*[\s\S]*?\*\*|`[^`]+?`|\*[^\*]+?\*)/g;
+    const tokenRegex =
+      /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$(?:\\\$|[^\$])+?\$|\\\([\s\S]*?\\\)|\*\*[\s\S]*?\*\*|`[^`]+?`|\*[^\*]+?\*)/g;
 
     const parts = text.split(tokenRegex);
 
@@ -48,10 +49,12 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
 
       // 1. Block Math $$ ... $$ or \[ ... \]
       if (
-        (part.startsWith('$$') && part.endsWith('$$')) ||
-        (part.startsWith('\\[') && part.endsWith('\\]'))
+        (part.startsWith("$$") && part.endsWith("$$")) ||
+        (part.startsWith("\\[") && part.endsWith("\\]"))
       ) {
-        const raw = part.startsWith('$$') ? part.slice(2, -2) : part.slice(2, -2);
+        const raw = part.startsWith("$$")
+          ? part.slice(2, -2)
+          : part.slice(2, -2);
         const html = renderMath(raw, true);
         return (
           <span
@@ -64,10 +67,12 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
 
       // 2. Inline Math $ ... $ or \( ... \)
       if (
-        (part.startsWith('$') && part.endsWith('$') && part.length > 2) ||
-        (part.startsWith('\\(') && part.endsWith('\\)'))
+        (part.startsWith("$") && part.endsWith("$") && part.length > 2) ||
+        (part.startsWith("\\(") && part.endsWith("\\)"))
       ) {
-        const raw = part.startsWith('$') ? part.slice(1, -1) : part.slice(2, -2);
+        const raw = part.startsWith("$")
+          ? part.slice(1, -1)
+          : part.slice(2, -2);
         const html = renderMath(raw, false);
         return (
           <span
@@ -79,7 +84,7 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
       }
 
       // 3. Bold ** ... **
-      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
         const raw = part.slice(2, -2);
         return (
           <strong key={index} className="font-bold text-stone-900">
@@ -89,7 +94,7 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
       }
 
       // 4. Inline Code ` ... `
-      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+      if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
         const raw = part.slice(1, -1);
         return (
           <code
@@ -102,7 +107,7 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
       }
 
       // 5. Italic * ... *
-      if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+      if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
         const raw = part.slice(1, -1);
         return (
           <em key={index} className="italic text-stone-800">
@@ -120,7 +125,8 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
     if (!isWorkedExample) return null;
 
     // Detect if content has "Step 1:", "Step 2:" or numbered sections
-    const stepRegex = /(?:^|\n)(?:###\s*)?(?:Step\s*(\d+)[:.]?|(\d+)\.\s*Step[:.]?)\s*/i;
+    const stepRegex =
+      /(?:^|\n)(?:###\s*)?(?:Step\s*(\d+)[:.]?|(\d+)\.\s*Step[:.]?)\s*/i;
     const hasSteps = stepRegex.test(content);
 
     if (!hasSteps) {
@@ -137,18 +143,21 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
     }
 
     // Split into step segments
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     const sections: { title?: string; body: string[] }[] = [];
     let currentSection: { title?: string; body: string[] } = { body: [] };
 
     for (const line of lines) {
-      const match = line.match(/^(?:###\s*)?(?:Step\s*(\d+)[:.]?|(\d+)\.\s*Step[:.]?)(.*)/i);
+      const match = line.match(
+        /^(?:###\s*)?(?:Step\s*(\d+)[:.]?|(\d+)\.\s*Step[:.]?)(.*)/i,
+      );
       if (match) {
         if (currentSection.body.length > 0 || currentSection.title) {
           sections.push(currentSection);
         }
         const stepNum = match[1] || match[2];
-        const stepDesc = match[3]?.replace(/^[:\s-]+/, '').trim() || `Step ${stepNum}`;
+        const stepDesc =
+          match[3]?.replace(/^[:\s-]+/, "").trim() || `Step ${stepNum}`;
         currentSection = {
           title: `Step ${stepNum}: ${stepDesc}`,
           body: [],
@@ -164,7 +173,7 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
     return (
       <div className="space-y-3">
         {sections.map((sec, idx) => {
-          const bodyText = sec.body.join('\n').trim();
+          const bodyText = sec.body.join("\n").trim();
           return (
             <div
               key={idx}
@@ -173,10 +182,12 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
               {sec.title && (
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 bg-teal-100 text-teal-900 rounded font-bold text-[11px] uppercase tracking-wide">
-                    {sec.title.split(':')[0]}
+                    {sec.title.split(":")[0]}
                   </span>
                   <span className="font-semibold text-stone-900 text-xs">
-                    {sec.title.includes(':') ? sec.title.split(':').slice(1).join(':').trim() : ''}
+                    {sec.title.includes(":")
+                      ? sec.title.split(":").slice(1).join(":").trim()
+                      : ""}
                   </span>
                 </div>
               )}
@@ -195,7 +206,11 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
   }, [content, isWorkedExample]);
 
   if (isWorkedExample && renderedWorkedExample) {
-    return <div className={`formatted-math-text ${className}`}>{renderedWorkedExample}</div>;
+    return (
+      <div className={`formatted-math-text ${className}`}>
+        {renderedWorkedExample}
+      </div>
+    );
   }
 
   // Standard Paragraph & List parsing for general explanations
@@ -204,16 +219,20 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
   return (
     <div className={`formatted-math-text space-y-2.5 ${className}`}>
       {paragraphs.map((para, pIdx) => {
-        const lines = para.split('\n').map((l) => l.trim()).filter(Boolean);
+        const lines = para
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
 
         // Check if paragraph is a bullet list
-        const isBulletList = lines.length > 1 && lines.every((l) => /^[-*•]\s+/.test(l));
+        const isBulletList =
+          lines.length > 1 && lines.every((l) => /^[-*•]\s+/.test(l));
         if (isBulletList) {
           return (
             <ul key={pIdx} className="list-disc pl-5 space-y-1 text-stone-800">
               {lines.map((item, iIdx) => (
                 <li key={iIdx} className="leading-relaxed">
-                  {parseInlineElements(item.replace(/^[-*•]\s+/, ''))}
+                  {parseInlineElements(item.replace(/^[-*•]\s+/, ""))}
                 </li>
               ))}
             </ul>
@@ -221,13 +240,17 @@ export const FormattedMathText: React.FC<FormattedMathTextProps> = ({
         }
 
         // Check if paragraph is a numbered list
-        const isNumList = lines.length > 1 && lines.every((l) => /^\d+\.\s+/.test(l));
+        const isNumList =
+          lines.length > 1 && lines.every((l) => /^\d+\.\s+/.test(l));
         if (isNumList) {
           return (
-            <ol key={pIdx} className="list-decimal pl-5 space-y-1 text-stone-800">
+            <ol
+              key={pIdx}
+              className="list-decimal pl-5 space-y-1 text-stone-800"
+            >
               {lines.map((item, iIdx) => (
                 <li key={iIdx} className="leading-relaxed">
-                  {parseInlineElements(item.replace(/^\d+\.\s+/, ''))}
+                  {parseInlineElements(item.replace(/^\d+\.\s+/, ""))}
                 </li>
               ))}
             </ol>

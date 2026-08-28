@@ -241,6 +241,8 @@ export const assessmentApi = {
       subject_name: string | null;
       score: number | null;
       completed: boolean;
+      total_questions?: number;
+      wrong_count?: number;
       started_at: string | null;
       finished_at: string | null;
     }>

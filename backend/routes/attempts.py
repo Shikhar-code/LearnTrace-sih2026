@@ -229,6 +229,22 @@ def list_attempts(
 
     attempts = query.order_by(AssessmentAttempt.started_at.desc()).limit(limit).all()
 
+    # Pre-fetch response counts for these attempts
+    attempt_ids = [a.id for a in attempts]
+    resp_map: dict[int, dict[str, int]] = {}
+    if attempt_ids:
+        responses = (
+            db.query(Response.attempt_id, Response.is_correct)
+            .filter(Response.attempt_id.in_(attempt_ids))
+            .all()
+        )
+        for att_id, is_corr in responses:
+            if att_id not in resp_map:
+                resp_map[att_id] = {"total": 0, "wrong": 0}
+            resp_map[att_id]["total"] += 1
+            if is_corr is False:
+                resp_map[att_id]["wrong"] += 1
+
     return [
         {
             "attempt_id": a.id,
@@ -241,6 +257,8 @@ def list_attempts(
             "subject_name": a.assessment.subject.name if a.assessment and a.assessment.subject else None,
             "score": a.score,
             "completed": a.completed,
+            "total_questions": resp_map.get(a.id, {}).get("total", 10),
+            "wrong_count": resp_map.get(a.id, {}).get("wrong", 0),
             "started_at": a.started_at.isoformat() if a.started_at else None,
             "finished_at": a.finished_at.isoformat() if a.finished_at else None,
         }

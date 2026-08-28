@@ -10,7 +10,7 @@ import { TutorContext, TutorResponse, AttemptSummaryItem } from "../../types";
 import { Badge } from "../../components/common/Badge";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { AlertBanner } from "../../components/common/AlertBanner";
-import { FormattedMathText } from '../../components/common/FormattedMathText';
+import { FormattedMathText } from "../../components/common/FormattedMathText";
 import {
   Sparkles,
   Bot,
@@ -86,17 +86,45 @@ export const AiTutor: React.FC = () => {
   const loadRecentAttempts = async () => {
     setLoadingAttempts(true);
     try {
-      const local = localStorage.getItem("learntrace_recent_attempts");
       let combined: AttemptSummaryItem[] = [];
-      if (local) {
-        try {
-          combined = JSON.parse(local);
-        } catch {
-          combined = [];
-        }
+
+      // 1. Fetch all completed attempts from the backend database
+      try {
+        const dbAttempts = await assessmentApi.listCompletedAttempts({
+          limit: 50,
+        });
+        combined = dbAttempts.map((a) => ({
+          id: a.attempt_id,
+          assessment_id: a.assessment_id,
+          assessment_title: a.assessment_title,
+          class_level: a.class_level ?? 10,
+          score: a.score ?? 0,
+          completed: a.completed,
+          started_at: a.started_at || new Date().toISOString(),
+          finished_at: a.finished_at,
+          total_questions: a.total_questions ?? 10,
+          wrong_count: a.wrong_count ?? 0,
+        }));
+      } catch (err) {
+        console.warn("Could not fetch DB completed attempts:", err);
       }
 
-      // If empty, provide standard demo attempts
+      // 2. Merge with any local storage attempts
+      try {
+        const local = localStorage.getItem("learntrace_recent_attempts");
+        if (local) {
+          const stored: AttemptSummaryItem[] = JSON.parse(local);
+          for (const s of stored) {
+            if (!combined.some((item) => item.id === s.id)) {
+              combined.push(s);
+            }
+          }
+        }
+      } catch {
+        // ignore JSON errors
+      }
+
+      // If still empty, provide fallback demo attempt
       if (combined.length === 0) {
         combined = [
           {
@@ -113,6 +141,9 @@ export const AiTutor: React.FC = () => {
           },
         ];
       }
+
+      // Sort by attempt ID descending (newest attempt first)
+      combined.sort((a, b) => b.id - a.id);
 
       setRecentAttempts(combined);
     } catch {
@@ -500,21 +531,29 @@ export const AiTutor: React.FC = () => {
                         Question
                       </span>
                       <div className="text-stone-800 bg-stone-50 p-2.5 rounded-lg border border-stone-200/70 mt-0.5 leading-relaxed font-medium">
-                        <FormattedMathText content={activeContext.question.text} />
+                        <FormattedMathText
+                          content={activeContext.question.text}
+                        />
                       </div>
                     </div>
 
                     <div className="space-y-1.5 pt-1">
                       <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-900 text-xs">
-                        <span className="font-bold block text-[11px] text-rose-800 mb-0.5">Your Answer:</span>
-                        <FormattedMathText content={activeContext.learner_answer} />
+                        <span className="font-bold block text-[11px] text-rose-800 mb-0.5">
+                          Your Answer:
+                        </span>
+                        <FormattedMathText
+                          content={activeContext.learner_answer}
+                        />
                       </div>
 
                       <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs">
                         <span className="font-bold block text-[11px] text-emerald-800 mb-0.5">
                           Correct Concept / Answer:
                         </span>
-                        <FormattedMathText content={activeContext.correct_answer} />
+                        <FormattedMathText
+                          content={activeContext.correct_answer}
+                        />
                       </div>
                     </div>
 
@@ -522,8 +561,12 @@ export const AiTutor: React.FC = () => {
                       <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                         <div>
-                          <span className="font-bold block text-[11px] text-amber-800 mb-0.5">Detected Gap:</span>
-                          <FormattedMathText content={activeContext.detected_gap.description} />
+                          <span className="font-bold block text-[11px] text-amber-800 mb-0.5">
+                            Detected Gap:
+                          </span>
+                          <FormattedMathText
+                            content={activeContext.detected_gap.description}
+                          />
                         </div>
                       </div>
                     )}
@@ -587,7 +630,9 @@ export const AiTutor: React.FC = () => {
                       <span>Core Concept in Simple Terms</span>
                     </div>
                     <div className="text-xs sm:text-sm text-stone-700 leading-relaxed bg-stone-50/80 p-3.5 rounded-lg border border-stone-200/60">
-                      <FormattedMathText content={tutorResponse.simple_explanation} />
+                      <FormattedMathText
+                        content={tutorResponse.simple_explanation}
+                      />
                     </div>
                   </div>
 
@@ -617,7 +662,9 @@ export const AiTutor: React.FC = () => {
                       </div>
 
                       <div className="text-xs sm:text-sm font-semibold text-stone-900 leading-relaxed">
-                        <FormattedMathText content={tutorResponse.practice_question.question} />
+                        <FormattedMathText
+                          content={tutorResponse.practice_question.question}
+                        />
                       </div>
 
                       {/* Options */}
@@ -694,8 +741,8 @@ export const AiTutor: React.FC = () => {
                               className={`p-3 rounded-lg text-xs border ${
                                 selectedPracticeOption ===
                                 tutorResponse.practice_question.correct_option
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-950"
-                                    : "bg-rose-50 border-rose-200 text-rose-950"
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-950"
+                                  : "bg-rose-50 border-rose-200 text-rose-950"
                               }`}
                             >
                               <div className="font-bold mb-1 flex items-center gap-1.5">
