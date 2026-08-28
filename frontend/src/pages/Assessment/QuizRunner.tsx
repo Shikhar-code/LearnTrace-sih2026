@@ -204,6 +204,29 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
         if (timerRef.current) clearInterval(timerRef.current);
         const finishRes = await assessmentApi.finishAttempt(attempt.attempt_id);
         setFinishedResult(finishRes);
+
+        // Record attempt in localStorage for the AI Tutor Hub
+        try {
+          const saved = JSON.parse(localStorage.getItem('learntrace_recent_attempts') || '[]');
+          const item = {
+            id: attempt.attempt_id,
+            assessment_id: assessment.id,
+            assessment_title: assessment.title,
+            class_level: assessment.class_level,
+            score: finishRes.score,
+            completed: true,
+            started_at: new Date().toISOString(),
+            finished_at: new Date().toISOString(),
+            total_questions: assessment.questions.length,
+            wrong_count: assessment.questions.length - (finishRes.correct || 0),
+          };
+          localStorage.setItem(
+            'learntrace_recent_attempts',
+            JSON.stringify([item, ...saved.filter((x: any) => x.id !== item.id)].slice(0, 25))
+          );
+        } catch {
+          // Non-blocking
+        }
       }
     } catch (err) {
       setErrorMessage(getApiErrorMessage(err));

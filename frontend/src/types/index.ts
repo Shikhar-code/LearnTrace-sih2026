@@ -170,6 +170,19 @@ export interface FinishAttemptResponse {
   completed: boolean;
 }
 
+export interface AttemptSummaryItem {
+  id: number;
+  assessment_id: number;
+  assessment_title: string;
+  class_level: number;
+  score: number;
+  completed: boolean;
+  started_at: string;
+  finished_at?: string | null;
+  total_questions: number;
+  wrong_count: number;
+}
+
 // Mastery Types
 export interface MasteryResponseItem {
   response_id: number;
