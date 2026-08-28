@@ -44,6 +44,8 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("AI Tutor shutting down.")
 
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
     title="LearnTrace AI Tutor",
     description=(
@@ -54,6 +56,14 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

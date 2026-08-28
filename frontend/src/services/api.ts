@@ -27,6 +27,8 @@ import {
   LEARNTRACE_ADMIN_HEATMAP_SCHEMA_V1,
   TutorContext,
   TutorResponse,
+  QuizTutorContext,
+  QuizTutorResponse,
 } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -149,6 +151,7 @@ export const documentsApi = {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 120000, // 120 seconds to allow PDF text extraction & chunk generation
       },
     );
     return response.data;
@@ -157,6 +160,7 @@ export const documentsApi = {
   getChunks: async (documentId: number): Promise<DocumentChunk[]> => {
     const response = await apiClient.get<DocumentChunk[]>("/chunks/", {
       params: { document_id: documentId },
+      timeout: 60000,
     });
     return response.data;
   },
@@ -185,6 +189,9 @@ export const documentsApi = {
       {
         chunk_ids: chunkIds,
         topic_id: topicId,
+      },
+      {
+        timeout: 60000,
       },
     );
     return response.data;
@@ -405,12 +412,36 @@ export const tutorApi = {
   },
 
   /**
-   * Request targeted AI tutoring explanation, ELI5 concept, worked example, and practice question.
+   * Request targeted AI tutoring explanation, ELI5 concept, worked example, and practice question (Mode 1).
    */
   explainMistake: async (context: TutorContext): Promise<TutorResponse> => {
     const response = await tutorClient.post<TutorResponse>(
       "/api/v1/tutor/explain",
       context,
+      { timeout: 60000 },
+    );
+    return response.data;
+  },
+
+  /**
+   * Request concise mistake explanations for a full quiz submission (AI Tutor Mode 2).
+   */
+  explainQuiz: async (context: QuizTutorContext): Promise<QuizTutorResponse> => {
+    const response = await tutorClient.post<QuizTutorResponse>(
+      "/api/v1/tutor/explain-quiz",
+      context,
+      { timeout: 60000 },
+    );
+    return response.data;
+  },
+
+  /**
+   * Request post-quiz mistake analysis directly from Backend Attempt ID.
+   */
+  explainAttemptViaBackend: async (attemptId: number): Promise<QuizTutorResponse> => {
+    const response = await apiClient.post<QuizTutorResponse>(
+      `/attempts/${attemptId}/explain`,
+      {},
       { timeout: 60000 },
     );
     return response.data;

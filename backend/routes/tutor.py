@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -5,20 +6,25 @@ from core.database import get_db
 from models.attempt import AssessmentAttempt, Response
 from models.quiz import Question, QuestionOption, Assessment
 from models.academic import Topic, Chapter, Subject
-from services.tutor_client import get_tutor_quiz_explanation
+from services.tutor_client import (
+    get_tutor_quiz_explanation,
+    get_tutor_single_explanation,
+)
 
 
 router = APIRouter(
-    prefix="/attempts",
     tags=["AI Tutor Integration"],
 )
 
 
-@router.post("/{attempt_id}/explain")
+@router.post("/attempts/{attempt_id}/explain")
 def explain_attempt_mistakes(
     attempt_id: int,
     db: Session = Depends(get_db),
 ):
+    """
+    Mode 2: Fetch attempt details from DB and generate post-quiz mistake explanations via AI Tutor.
+    """
     attempt = (
         db.query(AssessmentAttempt)
         .filter(AssessmentAttempt.id == attempt_id)
@@ -116,6 +122,34 @@ def explain_attempt_mistakes(
 
     try:
         return get_tutor_quiz_explanation(quiz_context)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to communicate with AI Tutor service: {str(exc)}",
+        ) from exc
+
+
+@router.post("/tutor/explain-quiz")
+def explain_quiz_direct(payload: dict[str, Any]):
+    """
+    Mode 2 Proxy: Forward full quiz-result JSON payload to AI Tutor Mode 2 endpoint.
+    """
+    try:
+        return get_tutor_quiz_explanation(payload)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to communicate with AI Tutor service: {str(exc)}",
+        ) from exc
+
+
+@router.post("/tutor/explain")
+def explain_single_direct(payload: dict[str, Any]):
+    """
+    Mode 1 Proxy: Forward single-question TutorContext payload to AI Tutor Mode 1 endpoint.
+    """
+    try:
+        return get_tutor_single_explanation(payload)
     except Exception as exc:
         raise HTTPException(
             status_code=502,

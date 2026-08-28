@@ -170,6 +170,19 @@ export interface FinishAttemptResponse {
   completed: boolean;
 }
 
+export interface AttemptSummaryItem {
+  id: number;
+  assessment_id: number;
+  assessment_title: string;
+  class_level: number;
+  score: number;
+  completed: boolean;
+  started_at: string;
+  finished_at?: string | null;
+  total_questions: number;
+  wrong_count: number;
+}
+
 // Mastery Types
 export interface MasteryResponseItem {
   response_id: number;
@@ -249,3 +262,36 @@ export interface TutorResponse {
 // Re-export Intelligence Engine Types and Schemas
 export * from "./intelligence";
 export * from "./auth";
+
+// AI Tutor Mode 2 (Post-Quiz Analysis) Types
+export interface QuizQuestionResult {
+  question_id: string;
+  question_text: string;
+  topic: string;
+  student_answer: string;
+  correct_answer: string;
+  is_correct: boolean;
+}
+
+export interface QuizTutorContext {
+  attempt_id: string;
+  subject: string;
+  class_level?: number | null;
+  questions: QuizQuestionResult[];
+}
+
+export interface QuizMistakeExplanation {
+  question_id: string;
+  question_text: string;
+  topic: string;
+  student_answer: string;
+  correct_answer: string;
+  explanation: string;
+}
+
+export interface QuizTutorResponse {
+  attempt_id: string;
+  total_questions: number;
+  incorrect_count: number;
+  mistakes: QuizMistakeExplanation[];
+}
