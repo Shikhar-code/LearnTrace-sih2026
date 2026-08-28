@@ -14,7 +14,12 @@ from .assessment import (
     Response,
 )
 from .concept_graph import Concept
-from .curriculum import CURRICULUM_VERSION, build_curriculum_graph, concept_id
+from .curriculum import (
+    CURRICULUM_VERSION,
+    build_curriculum_graph,
+    concept_id,
+    normalize_curriculum_concept,
+)
 from .frontend import build_frontend_payload
 from .mastery import MasteryEngine
 from .pipeline import IntelligencePipeline, PipelineResult
@@ -101,13 +106,18 @@ def analyze_backend_bundles(
                     f"response {row.get('response_id')} has no evaluated correctness"
                 )
             class_level = int(row["class_level"])
-            subject = str(row["subject"])
-            chapter = str(row.get("chapter") or row.get("topic") or "").strip()
-            if not chapter:
+            raw_subject = str(row["subject"])
+            raw_chapter = str(row.get("chapter") or row.get("topic") or "").strip()
+            if not raw_chapter:
                 raise ValueError(f"response {row.get('response_id')} has no chapter or topic mapping")
-            competency_id = concept_id(class_level, subject, chapter)
+            subject, chapter, competency_id = normalize_curriculum_concept(
+                class_level, raw_subject, raw_chapter
+            )
             observed_concepts[competency_id] = Concept(competency_id, chapter)
             title_to_concept[chapter.casefold()] = competency_id
+            title_to_concept[raw_chapter.casefold()] = competency_id
+            if row.get("topic"):
+                title_to_concept[str(row["topic"]).strip().casefold()] = competency_id
 
             question_id = str(row["question_id"])
             if question_id in seen_questions:
@@ -158,8 +168,27 @@ def analyze_backend_bundles(
 
     target = target_concept_id
     if target is not None and target not in observed_concepts:
-        target = title_to_concept.get(target.casefold())
-        if target is None:
+        resolved = title_to_concept.get(target.casefold())
+        if resolved is not None:
+            target = resolved
+        elif ":" in target:
+            parts = target.split(":")
+            if len(parts) >= 3:
+                try:
+                    target_lvl = int(parts[0].replace("class-", ""))
+                    _, _, normalized_target = normalize_curriculum_concept(
+                        target_lvl, parts[1], parts[2]
+                    )
+                    if normalized_target in observed_concepts:
+                        target = normalized_target
+                except ValueError:
+                    pass
+
+    # Gracefully default to the primary assessed concept if target is still unobserved
+    if target is not None and target not in observed_concepts:
+        if observed_concepts:
+            target = next(iter(observed_concepts.keys()))
+        else:
             raise ValueError("target concept must be assessed in the supplied attempts")
 
     graph = build_curriculum_graph(observed_concepts.values())

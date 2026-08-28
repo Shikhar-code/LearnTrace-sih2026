@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from core.database import get_db
 from models.attempt import AssessmentAttempt, Response
@@ -32,7 +32,12 @@ def get_mastery_input(
 
     responses = (
         db.query(Response)
-        .join(Question, Response.question_id == Question.id)
+        .options(
+            joinedload(Response.question)
+            .joinedload(Question.topic)
+            .joinedload(Topic.chapter)
+            .joinedload(Chapter.subject)
+        )
         .filter(Response.attempt_id == attempt_id)
         .all()
     )
@@ -41,46 +46,25 @@ def get_mastery_input(
 
     for response in responses:
         question = response.question
-
-        topic = (
-            db.query(Topic)
-            .filter(Topic.id == question.topic_id)
-            .first()
-        )
-
-        if not topic:
+        if not question:
             continue
 
-        chapter = (
-            db.query(Chapter)
-            .filter(Chapter.id == topic.chapter_id)
-            .first()
-        )
-
-        subject = None
-
-        if chapter:
-            subject = (
-                db.query(Subject)
-                .filter(Subject.id == chapter.subject_id)
-                .first()
-            )
+        topic = question.topic
+        chapter = topic.chapter if topic else None
+        subject = chapter.subject if chapter else None
 
         result.append(
             {
                 "response_id": response.id,
                 "question_id": response.question_id,
                 "selected_option_id": response.selected_option_id,
-                "topic_id": topic.id,
-                "topic": topic.title,
+                "topic_id": topic.id if topic else None,
+                "topic": topic.title if topic else None,
                 "chapter_id": chapter.id if chapter else None,
-                "chapter": chapter.title if chapter else None,
+                "chapter": chapter.title if chapter else (topic.title if topic else None),
                 "subject_id": subject.id if subject else None,
                 "subject": subject.name if subject else None,
-                "class_level": (
-                    subject.class_level
-                    if subject else None
-                ),
+                "class_level": subject.class_level if subject else None,
                 "is_correct": response.is_correct,
                 "response_time_seconds": response.response_time_seconds,
             }

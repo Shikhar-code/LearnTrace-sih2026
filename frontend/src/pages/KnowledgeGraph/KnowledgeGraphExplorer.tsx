@@ -92,7 +92,8 @@ export const KnowledgeGraphExplorer: React.FC = () => {
     setRemediationData(null);
 
     const primaryAttemptId = studentAttempts[0]?.attempt_id || 1;
-    const primaryAttemptType = studentAttempts[0]?.assessment_type || "diagnostic";
+    const primaryAttemptType =
+      studentAttempts[0]?.assessment_type || "diagnostic";
 
     try {
       if (queryAttemptId) {
@@ -154,7 +155,8 @@ export const KnowledgeGraphExplorer: React.FC = () => {
     }, 40);
 
     const primaryAttemptId = studentAttempts[0]?.attempt_id || 1;
-    const primaryAttemptType = studentAttempts[0]?.assessment_type || "diagnostic";
+    const primaryAttemptType =
+      studentAttempts[0]?.assessment_type || "diagnostic";
 
     try {
       if (queryAttemptId) {

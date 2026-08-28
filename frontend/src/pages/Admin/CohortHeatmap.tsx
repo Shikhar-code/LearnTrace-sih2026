@@ -78,37 +78,8 @@ export const CohortHeatmap: React.FC = () => {
 
   const activeSubject = SUBJECT_OPTIONS[selectedSubjectIdx];
 
-  // Auto-sync completed attempts from backend & storage
-  useEffect(() => {
-    const syncAttempts = async () => {
-      try {
-        const storedIds = getAllCohortAttemptIds();
-        let dbIds: number[] = [];
-        try {
-          const dbAttempts = await assessmentApi.listCompletedAttempts({
-            class_level: activeSubject.classLevel,
-          });
-          dbIds = dbAttempts.map((a) => a.attempt_id);
-        } catch {
-          // Backend may be offline during initial client boot
-        }
-
-        const merged = Array.from(
-          new Set([...storedIds, ...dbIds, 1, 2, 3, 4]),
-        ).sort((a, b) => a - b);
-
-        setAttemptIdsInput(merged.join(", "));
-        setDiscoveredCount(merged.length);
-      } catch (e) {
-        console.warn("Could not sync cohort attempt IDs:", e);
-      }
-    };
-
-    syncAttempts();
-  }, [selectedSubjectIdx]);
-
-  const parseAttemptInputs = (): AttemptAnalysisInput[] => {
-    const ids = attemptIdsInput
+  const parseAttemptInputs = (idsString: string): AttemptAnalysisInput[] => {
+    const ids = idsString
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean)
@@ -116,19 +87,18 @@ export const CohortHeatmap: React.FC = () => {
       .filter((n) => !isNaN(n) && n > 0);
 
     if (ids.length === 0) return DEFAULT_COHORT_ATTEMPTS;
-    // Multi-attempt heuristics: mark attempt #4 as reassessment, others as diagnostic
     return ids.map((id) => ({
       attempt_id: id,
       assessment_type: id === 4 ? "reassessment" : "diagnostic",
     }));
   };
 
-  const loadHeatmap = async () => {
+  const loadHeatmap = async (overrideAttempts?: AttemptAnalysisInput[]) => {
     setLoading(true);
     setErrorMessage(null);
     setActiveCellDetail(null);
 
-    const attempts = parseAttemptInputs();
+    const attempts = overrideAttempts || parseAttemptInputs(attemptIdsInput);
 
     try {
       const data = await intelligenceApi.getAdminHeatmap(
@@ -137,7 +107,10 @@ export const CohortHeatmap: React.FC = () => {
       );
       setHeatmapData(data);
     } catch (err) {
-      console.warn("Failed to load admin cohort heatmap with supplied IDs, attempting auto-discovery:", err);
+      console.warn(
+        "Failed to load admin cohort heatmap with supplied IDs, attempting auto-discovery:",
+        err,
+      );
       try {
         // Fallback to backend auto-discovery
         const fallbackData = await intelligenceApi.getAdminHeatmap(
@@ -156,9 +129,42 @@ export const CohortHeatmap: React.FC = () => {
     }
   };
 
+  // Synchronize attempts & execute single clean load on subject switch
   useEffect(() => {
-    loadHeatmap();
-  }, [selectedSubjectIdx, attemptIdsInput]);
+    let isCancelled = false;
+
+    const syncAndLoad = async () => {
+      const storedIds = getAllCohortAttemptIds();
+      let dbIds: number[] = [];
+      try {
+        const dbAttempts = await assessmentApi.listCompletedAttempts({
+          class_level: activeSubject.classLevel,
+        });
+        dbIds = dbAttempts.map((a) => a.attempt_id);
+      } catch {
+        // Backend offline fallback
+      }
+
+      if (isCancelled) return;
+
+      const merged = Array.from(
+        new Set([...storedIds, ...dbIds, 1, 2, 3, 4]),
+      ).sort((a, b) => a - b);
+
+      const mergedString = merged.join(", ");
+      setAttemptIdsInput(mergedString);
+      setDiscoveredCount(merged.length);
+
+      const parsed = parseAttemptInputs(mergedString);
+      loadHeatmap(parsed);
+    };
+
+    syncAndLoad();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedSubjectIdx]);
 
   // Color mapper for heatmap cells
   const getCellStyles = (cell: AdminHeatmapCell) => {
@@ -276,7 +282,7 @@ export const CohortHeatmap: React.FC = () => {
             </div>
 
             <button
-              onClick={loadHeatmap}
+              onClick={() => loadHeatmap()}
               className="px-3.5 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
             >
               <RefreshCw className="w-3 h-3" />

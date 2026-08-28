@@ -1,7 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { assessmentApi, academicApi, aiQuizApi, getApiErrorMessage } from '../../services/api';
-import { recordStudentAttempt } from '../../services/attemptStorage';
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  assessmentApi,
+  academicApi,
+  aiQuizApi,
+  getApiErrorMessage,
+} from "../../services/api";
+import { recordStudentAttempt } from "../../services/attemptStorage";
 import {
   Assessment,
   StartAttemptResponse,
@@ -9,10 +14,10 @@ import {
   Subject,
   Chapter,
   Topic,
-} from '../../types';
-import { Badge } from '../../components/common/Badge';
-import { LoadingSpinner } from '../../components/common/LoadingSpinner';
-import { AlertBanner } from '../../components/common/AlertBanner';
+} from "../../types";
+import { Badge } from "../../components/common/Badge";
+import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { AlertBanner } from "../../components/common/AlertBanner";
 import {
   PlayCircle,
   Clock,
@@ -24,13 +29,15 @@ import {
   Sparkles,
   Zap,
   BookOpen,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface QuizRunnerProps {
   onNavigateToMastery?: (attemptId: number) => void;
 }
 
-export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) => {
+export const QuizRunner: React.FC<QuizRunnerProps> = ({
+  onNavigateToMastery,
+}) => {
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
 
@@ -46,7 +53,8 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Completed State
-  const [finishedResult, setFinishedResult] = useState<FinishAttemptResponse | null>(null);
+  const [finishedResult, setFinishedResult] =
+    useState<FinishAttemptResponse | null>(null);
 
   // AI Quiz Generator Form State
   const [classLevel, setClassLevel] = useState<number>(10);
@@ -56,7 +64,9 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
   const [chapterId, setChapterId] = useState<number | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [topicId, setTopicId] = useState<number | null>(null);
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
+    "medium",
+  );
   const [duration, setDuration] = useState<number>(10);
   const [isGeneratingAiQuiz, setIsGeneratingAiQuiz] = useState<boolean>(false);
 
@@ -128,7 +138,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
   const handleGenerateAiQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topicId) {
-      setErrorMessage('Please select a topic to generate questions from.');
+      setErrorMessage("Please select a topic to generate questions from.");
       return;
     }
 
@@ -147,20 +157,22 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
       });
 
       // 2. Fetch the newly created Assessment
-      const fetchedAssessment = await assessmentApi.getAssessment(res.assessment_id);
+      const fetchedAssessment = await assessmentApi.getAssessment(
+        res.assessment_id,
+      );
       setAssessment(fetchedAssessment);
       setSearchParams({ assessment_id: res.assessment_id.toString() });
 
       // 3. Auto-start the attempt immediately
       const startRes = await assessmentApi.startAttempt(res.assessment_id, 1);
-      recordStudentAttempt(1, startRes.attempt_id, 'diagnostic');
+      recordStudentAttempt(1, startRes.attempt_id, "diagnostic");
       setAttempt(startRes);
       setCurrentQuestionIndex(0);
       setSelectedOptionId(null);
       setQuestionTimeSeconds(0);
 
       setSuccessMessage(
-        `AI Quiz "${res.title}" generated successfully with ${res.questions_created} NCERT questions! Good luck!`
+        `AI Quiz "${res.title}" generated successfully with ${res.questions_created} NCERT questions! Good luck!`,
       );
     } catch (err) {
       setErrorMessage(`AI Quiz generation failed. ${getApiErrorMessage(err)}`);
@@ -192,11 +204,13 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
         if (timerRef.current) clearInterval(timerRef.current);
         const finishRes = await assessmentApi.finishAttempt(attempt.attempt_id);
         setFinishedResult(finishRes);
-        recordStudentAttempt(1, attempt.attempt_id, 'diagnostic');
+        recordStudentAttempt(1, attempt.attempt_id, "diagnostic");
 
         // Record attempt in localStorage for the AI Tutor Hub
         try {
-          const saved = JSON.parse(localStorage.getItem('learntrace_recent_attempts') || '[]');
+          const saved = JSON.parse(
+            localStorage.getItem("learntrace_recent_attempts") || "[]",
+          );
           const item = {
             id: attempt.attempt_id,
             assessment_id: assessment.id,
@@ -210,8 +224,13 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
             wrong_count: assessment.questions.length - (finishRes.correct || 0),
           };
           localStorage.setItem(
-            'learntrace_recent_attempts',
-            JSON.stringify([item, ...saved.filter((x: any) => x.id !== item.id)].slice(0, 25))
+            "learntrace_recent_attempts",
+            JSON.stringify(
+              [item, ...saved.filter((x: any) => x.id !== item.id)].slice(
+                0,
+                25,
+              ),
+            ),
           );
         } catch {
           // Non-blocking
@@ -246,17 +265,17 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
             </div>
             <h1 className="text-lg sm:text-xl font-bold text-stone-900 mt-1 tracking-tight">
               {attempt && !finishedResult
-                ? `Taking Assessment: ${assessment?.title || 'Quiz'}`
+                ? `Taking Assessment: ${assessment?.title || "Quiz"}`
                 : finishedResult
-                ? 'Assessment Completed'
-                : 'AI-Powered NCERT Assessment Studio'}
+                  ? "Assessment Completed"
+                  : "AI-Powered NCERT Assessment Studio"}
             </h1>
             <p className="text-xs text-stone-600 mt-0.5">
               {attempt && !finishedResult
-                ? 'Select the best option and advance. Latency is measured per question.'
+                ? "Select the best option and advance. Latency is measured per question."
                 : finishedResult
-                ? 'Review your results, examine misconceptions with the AI Tutor, or check mastery analytics.'
-                : 'Generate 10-question multiple-choice quizzes grounded in official textbook passages and benchmark your concept mastery.'}
+                  ? "Review your results, examine misconceptions with the AI Tutor, or check mastery analytics."
+                  : "Generate 10-question multiple-choice quizzes grounded in official textbook passages and benchmark your concept mastery."}
             </p>
           </div>
 
@@ -300,9 +319,12 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Quiz Completed!</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-stone-900">
+              Quiz Completed!
+            </h2>
             <p className="text-xs text-stone-500 max-w-md mx-auto">
-              Your responses have been recorded and evaluated against Bayesian mastery benchmarks.
+              Your responses have been recorded and evaluated against Bayesian
+              mastery benchmarks.
             </p>
           </div>
 
@@ -322,7 +344,8 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
                 Correct
               </span>
               <div className="text-xl sm:text-2xl font-bold text-stone-800 mt-1">
-                {finishedResult.correct ?? '-'} / {finishedResult.answered ?? assessment.questions.length}
+                {finishedResult.correct ?? "-"} /{" "}
+                {finishedResult.answered ?? assessment.questions.length}
               </div>
             </div>
 
@@ -390,9 +413,12 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
               <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-stone-900">Configure & Generate Assessment</h2>
+              <h2 className="text-base font-bold text-stone-900">
+                Configure & Generate Assessment
+              </h2>
               <p className="text-xs text-stone-500">
-                Select your grade, subject, and chapter. The AI will extract NCERT passages and construct a 10-MCQ quiz instantly.
+                Select your grade, subject, and chapter. The AI will extract
+                NCERT passages and construct a 10-MCQ quiz instantly.
               </p>
             </div>
           </div>
@@ -401,7 +427,9 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Class Selection */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Grade Level</label>
+                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
+                  Grade Level
+                </label>
                 <select
                   value={classLevel}
                   onChange={(e) => setClassLevel(Number(e.target.value))}
@@ -414,9 +442,11 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
 
               {/* Subject Selection */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Subject</label>
+                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
+                  Subject
+                </label>
                 <select
-                  value={subjectId || ''}
+                  value={subjectId || ""}
                   onChange={(e) => setSubjectId(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
                 >
@@ -432,9 +462,11 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Chapter Selection */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Chapter</label>
+                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
+                  Chapter
+                </label>
                 <select
-                  value={chapterId || ''}
+                  value={chapterId || ""}
                   onChange={(e) => setChapterId(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
                 >
@@ -448,9 +480,11 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
 
               {/* Topic Selection */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Topic (Grounding Target)</label>
+                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
+                  Topic (Grounding Target)
+                </label>
                 <select
-                  value={topicId || ''}
+                  value={topicId || ""}
                   onChange={(e) => setTopicId(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
                 >
@@ -466,21 +500,29 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Difficulty */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Difficulty</label>
+                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
+                  Difficulty
+                </label>
                 <select
                   value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                  onChange={(e) =>
+                    setDifficulty(e.target.value as "easy" | "medium" | "hard")
+                  }
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-800"
                 >
                   <option value="easy">Easy (Foundational Recall)</option>
-                  <option value="medium">Medium (Application & Problem Solving)</option>
+                  <option value="medium">
+                    Medium (Application & Problem Solving)
+                  </option>
                   <option value="hard">Hard (Conceptual Multi-Step)</option>
                 </select>
               </div>
 
               {/* Duration */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">Duration</label>
+                <label className="block font-semibold text-stone-700 mb-1 text-[11px]">
+                  Duration
+                </label>
                 <select
                   value={duration}
                   onChange={(e) => setDuration(Number(e.target.value))}
@@ -499,7 +541,9 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
                 <BookOpen className="w-4 h-4 text-teal-800" />
                 <span>RAG Source: Official NCERT Passages</span>
               </div>
-              <span className="font-semibold text-stone-800">10 MCQs (4 options, 1 correct) • Latency Tracking</span>
+              <span className="font-semibold text-stone-800">
+                10 MCQs (4 options, 1 correct) • Latency Tracking
+              </span>
             </div>
 
             {/* Submit Action Button */}
@@ -512,7 +556,9 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
                 {isGeneratingAiQuiz ? (
                   <>
                     <LoadingSpinner size="sm" className="text-white" />
-                    <span>Analyzing NCERT Textbook & Generating 10 Questions...</span>
+                    <span>
+                      Analyzing NCERT Textbook & Generating 10 Questions...
+                    </span>
                   </>
                 ) : (
                   <>
@@ -533,7 +579,8 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
           <div className="bg-stone-900 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 text-xs">
               <span className="font-medium text-stone-300 uppercase tracking-wider text-[11px] sm:text-xs">
-                Question {currentQuestionIndex + 1} of {assessment?.questions.length}
+                Question {currentQuestionIndex + 1} of{" "}
+                {assessment?.questions.length}
               </span>
               <span className="text-stone-600">|</span>
               <span className="font-mono text-stone-400 text-[10px] sm:text-xs">
@@ -545,7 +592,8 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
             <div className="flex items-center gap-1.5 sm:gap-2 bg-stone-800 px-2.5 sm:px-3 py-1 rounded-full border border-stone-700 text-xs font-mono">
               <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
               <span className="text-stone-300 text-[11px] sm:text-xs">
-                Time: <strong className="text-white">{questionTimeSeconds}s</strong>
+                Time:{" "}
+                <strong className="text-white">{questionTimeSeconds}s</strong>
               </span>
             </div>
           </div>
@@ -573,11 +621,13 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
                   </Badge>
                   <Badge
                     variant={
-                      assessment.questions[currentQuestionIndex].difficulty === 'hard'
-                        ? 'rose'
-                        : assessment.questions[currentQuestionIndex].difficulty === 'medium'
-                        ? 'amber'
-                        : 'emerald'
+                      assessment.questions[currentQuestionIndex].difficulty ===
+                      "hard"
+                        ? "rose"
+                        : assessment.questions[currentQuestionIndex]
+                              .difficulty === "medium"
+                          ? "amber"
+                          : "emerald"
                     }
                     size="sm"
                   >
@@ -591,30 +641,36 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({ onNavigateToMastery }) =
 
               {/* Touch-Friendly Options List */}
               <div className="space-y-2.5 sm:space-y-3">
-                {assessment.questions[currentQuestionIndex].options.map((option, idx) => {
-                  const isSelected = selectedOptionId === option.id;
-                  const letter = String.fromCharCode(65 + idx);
-                  return (
-                    <button
-                      key={option.id}
-                      onClick={() => setSelectedOptionId(option.id)}
-                      className={`w-full text-left p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm transition-all flex items-center gap-3 sm:gap-4 ${
-                        isSelected
-                          ? 'bg-teal-50 border-teal-800 text-teal-950 ring-1 ring-teal-800 font-semibold shadow-2xs'
-                          : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300'
-                      }`}
-                    >
-                      <span
-                        className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
-                          isSelected ? 'bg-teal-800 text-white' : 'bg-stone-100 text-stone-600'
+                {assessment.questions[currentQuestionIndex].options.map(
+                  (option, idx) => {
+                    const isSelected = selectedOptionId === option.id;
+                    const letter = String.fromCharCode(65 + idx);
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => setSelectedOptionId(option.id)}
+                        className={`w-full text-left p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm transition-all flex items-center gap-3 sm:gap-4 ${
+                          isSelected
+                            ? "bg-teal-50 border-teal-800 text-teal-950 ring-1 ring-teal-800 font-semibold shadow-2xs"
+                            : "bg-white border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300"
                         }`}
                       >
-                        {letter}
-                      </span>
-                      <span className="flex-1 leading-snug">{option.option_text}</span>
-                    </button>
-                  );
-                })}
+                        <span
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
+                            isSelected
+                              ? "bg-teal-800 text-white"
+                              : "bg-stone-100 text-stone-600"
+                          }`}
+                        >
+                          {letter}
+                        </span>
+                        <span className="flex-1 leading-snug">
+                          {option.option_text}
+                        </span>
+                      </button>
+                    );
+                  },
+                )}
               </div>
 
               {/* Action Button: Next or Submit */}

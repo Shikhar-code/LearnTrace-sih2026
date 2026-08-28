@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from core.database import get_db
 from models.academic import Subject
@@ -154,6 +154,10 @@ def get_assessment(
 
     questions = (
         db.query(AssessmentQuestion)
+        .options(
+            joinedload(AssessmentQuestion.question)
+            .joinedload(Question.options)
+        )
         .filter(
             AssessmentQuestion.assessment_id == assessment_id
         )
@@ -182,9 +186,10 @@ def get_assessment(
                         "option_text": option.option_text,
                         "is_correct": option.is_correct,
                     }
-                    for option in item.question.options
+                    for option in (item.question.options or [])
                 ],
             }
             for item in questions
+            if item.question
         ],
     }

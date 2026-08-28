@@ -64,7 +64,9 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
   const [attemptIdInput, setAttemptIdInput] = useState<number>(
     queryAttemptId || initialAttemptId || 1,
   );
-  const [availableAttempts, setAvailableAttempts] = useState<RecentAttemptOption[]>([]);
+  const [availableAttempts, setAvailableAttempts] = useState<
+    RecentAttemptOption[]
+  >([]);
   const [targetConceptId, setTargetConceptId] = useState<string>("");
 
   // Data State
@@ -83,7 +85,9 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
     const syncAttempts = async () => {
       let list: RecentAttemptOption[] = [];
       try {
-        const dbAttempts = await assessmentApi.listCompletedAttempts({ limit: 10 });
+        const dbAttempts = await assessmentApi.listCompletedAttempts({
+          limit: 10,
+        });
         list = dbAttempts.map((a) => ({
           id: a.attempt_id,
           assessment_title: a.assessment_title,
@@ -114,8 +118,16 @@ export const MasteryDashboard: React.FC<MasteryDashboardProps> = ({
 
       // Ensure baseline demo attempts are available
       const baseline = [
-        { id: 1, assessment_title: "Class 10 Trigonometry Diagnostic", score: 50 },
-        { id: 4, assessment_title: "Class 10 Trigonometry Reassessment", score: 85 },
+        {
+          id: 1,
+          assessment_title: "Class 10 Trigonometry Diagnostic",
+          score: 50,
+        },
+        {
+          id: 4,
+          assessment_title: "Class 10 Trigonometry Reassessment",
+          score: 85,
+        },
         { id: 2, assessment_title: "Ravi Demo Diagnostic", score: 65 },
         { id: 3, assessment_title: "Meera Demo Diagnostic", score: 90 },
       ];

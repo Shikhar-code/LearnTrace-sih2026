@@ -145,10 +145,21 @@ def build_curriculum_graph(extra_concepts: Iterable[Concept] = ()) -> ConceptGra
         for chapter in chapters
     ]
     known = {concept.id for concept in concepts}
+    extra_dependencies: list[Dependency] = []
+
     for concept in extra_concepts:
         if concept.id not in known:
             concepts.append(concept)
             known.add(concept.id)
+            # Anchor custom or dynamic concepts into the matching class/subject curriculum DAG
+            parts = concept.id.split(":")
+            if len(parts) >= 2:
+                scope = f"{parts[0]}:{parts[1]}:"
+                subject_anchors = [c.id for c in concepts if c.id.startswith(scope) and c.id != concept.id]
+                if subject_anchors:
+                    anchor = subject_anchors[0]
+                    extra_dependencies.append(Dependency(concept.id, anchor, 0.75))
+
     dependencies = [
         Dependency(
             concept_id(level, subject, concept),
@@ -156,8 +167,43 @@ def build_curriculum_graph(extra_concepts: Iterable[Concept] = ()) -> ConceptGra
             weight,
         )
         for level, subject, concept, prerequisite, weight in DEPENDENCIES
-    ]
+    ] + extra_dependencies
+
     return ConceptGraph(concepts, dependencies)
+
+
+def normalize_curriculum_concept(
+    class_level: int, subject_name: str, chapter_title: str
+) -> tuple[str, str, str]:
+    """Normalize subject and chapter names to official NCERT curriculum nodes when matched."""
+    clean_subj = subject_name.strip()
+    if clean_subj.lower() in {"math", "maths", "mathematics"}:
+        clean_subj = "Mathematics"
+    elif clean_subj.lower() in {"science", "sci"}:
+        clean_subj = "Science"
+
+    clean_chap = chapter_title.strip()
+    candidates = CHAPTERS.get((class_level, clean_subj), ())
+    clean_slug = _slug(clean_chap)
+
+    # 1. Exact or slug match
+    for standard_chap in candidates:
+        if (
+            standard_chap.casefold() == clean_chap.casefold()
+            or _slug(standard_chap) == clean_slug
+        ):
+            return clean_subj, standard_chap, concept_id(class_level, clean_subj, standard_chap)
+
+    # 2. Substring match (e.g. "Chapter 9 - Some Applications of Trigonometry" -> "Some Applications of Trigonometry")
+    for standard_chap in candidates:
+        if (
+            standard_chap.casefold() in clean_chap.casefold()
+            or clean_chap.casefold() in standard_chap.casefold()
+        ):
+            return clean_subj, standard_chap, concept_id(class_level, clean_subj, standard_chap)
+
+    # 3. Fallback to raw chapter/topic
+    return clean_subj, clean_chap, concept_id(class_level, clean_subj, clean_chap)
 
 
 __all__ = [
@@ -166,4 +212,5 @@ __all__ = [
     "DEPENDENCIES",
     "build_curriculum_graph",
     "concept_id",
+    "normalize_curriculum_concept",
 ]

@@ -38,7 +38,7 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 30000,
+  timeout: 60000,
 });
 
 // Helper for extracting readable error messages
@@ -393,7 +393,8 @@ export const systemApi = {
 };
 
 // AI Tutor Service Endpoints (Dedicated Service)
-const TUTOR_API_BASE_URL = import.meta.env.VITE_TUTOR_API_BASE_URL || "/tutor-api";
+const TUTOR_API_BASE_URL =
+  import.meta.env.VITE_TUTOR_API_BASE_URL || "/tutor-api";
 
 export const tutorClient = axios.create({
   baseURL: TUTOR_API_BASE_URL,
@@ -431,7 +432,9 @@ export const tutorApi = {
   /**
    * Request concise mistake explanations for a full quiz submission (AI Tutor Mode 2).
    */
-  explainQuiz: async (context: QuizTutorContext): Promise<QuizTutorResponse> => {
+  explainQuiz: async (
+    context: QuizTutorContext,
+  ): Promise<QuizTutorResponse> => {
     const response = await tutorClient.post<QuizTutorResponse>(
       "/api/v1/tutor/explain-quiz",
       context,
@@ -443,7 +446,9 @@ export const tutorApi = {
   /**
    * Request post-quiz mistake analysis directly from Backend Attempt ID.
    */
-  explainAttemptViaBackend: async (attemptId: number): Promise<QuizTutorResponse> => {
+  explainAttemptViaBackend: async (
+    attemptId: number,
+  ): Promise<QuizTutorResponse> => {
     const response = await apiClient.post<QuizTutorResponse>(
       `/attempts/${attemptId}/explain`,
       {},

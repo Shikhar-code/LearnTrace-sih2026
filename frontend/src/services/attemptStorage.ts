@@ -9,7 +9,9 @@ const DEFAULT_COHORT_BASELINE = [1, 2, 3, 4];
 /**
  * Returns the list of completed attempt records for a student.
  */
-export const getStudentAttempts = (userId: number = 1): AttemptAnalysisInput[] => {
+export const getStudentAttempts = (
+  userId: number = 1,
+): AttemptAnalysisInput[] => {
   try {
     const saved = localStorage.getItem(`${ATTEMPT_STORAGE_PREFIX}${userId}`);
     if (saved) {
