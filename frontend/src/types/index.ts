@@ -248,3 +248,37 @@ export interface TutorResponse {
 
 // Re-export Intelligence Engine Types and Schemas
 export * from "./intelligence";
+
+
+// AI Tutor Mode 2 (Post-Quiz Analysis) Types
+export interface QuizQuestionResult {
+  question_id: string;
+  question_text: string;
+  topic: string;
+  student_answer: string;
+  correct_answer: string;
+  is_correct: boolean;
+}
+
+export interface QuizTutorContext {
+  attempt_id: string;
+  subject: string;
+  class_level?: number | null;
+  questions: QuizQuestionResult[];
+}
+
+export interface QuizMistakeExplanation {
+  question_id: string;
+  question_text: string;
+  topic: string;
+  student_answer: string;
+  correct_answer: string;
+  explanation: string;
+}
+
+export interface QuizTutorResponse {
+  attempt_id: string;
+  total_questions: number;
+  incorrect_count: number;
+  mistakes: QuizMistakeExplanation[];
+}

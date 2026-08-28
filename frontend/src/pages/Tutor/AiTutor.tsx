@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { tutorApi, assessmentApi, masteryApi, getApiErrorMessage } from '../../services/api';
-import { TutorContext, TutorResponse } from '../../types';
+import { TutorContext, TutorResponse, QuizTutorResponse } from '../../types';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { AlertBanner } from '../../components/common/AlertBanner';
@@ -37,6 +37,7 @@ export const AiTutor: React.FC = () => {
     (location.state as { tutorContext?: TutorContext })?.tutorContext || null
   );
   const [tutorResponse, setTutorResponse] = useState<TutorResponse | null>(null);
+  const [quizSummaryResponse, setQuizSummaryResponse] = useState<QuizTutorResponse | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState<boolean>(false);
 
   // Attempt Multi-Mistake Navigation (if arriving from Quiz attempt)
@@ -82,6 +83,12 @@ export const AiTutor: React.FC = () => {
     setLoadingExplanation(true);
     setErrorMessage(null);
     try {
+            try {
+        const mode2Res = await tutorApi.explainAttemptViaBackend(attemptId);
+        setQuizSummaryResponse(mode2Res);
+      } catch (e) {
+        console.warn("Could not load Mode 2 quiz summary:", e);
+      }
       const masteryData = await masteryApi.getMasteryInput(attemptId);
       const assessData = await assessmentApi.getAssessment(masteryData.assessment_id);
 
@@ -238,6 +245,92 @@ export const AiTutor: React.FC = () => {
           message={errorMessage}
           onClose={() => setErrorMessage(null)}
         />
+      )}
+
+      {/* Mode 2 Post-Quiz AI Analysis Overview */}
+      {quizSummaryResponse && (
+        <div className="bg-white rounded-xl border border-teal-200/90 p-4 sm:p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+            <div className="flex items-center gap-2">
+              <FileCheck2 className="w-5 h-5 text-teal-800" />
+              <h2 className="font-bold text-sm text-stone-900 tracking-tight">
+                Mode 2: Post-Quiz AI Mistake Overview (Attempt #{quizSummaryResponse.attempt_id})
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <Badge variant="stone" size="sm">
+                Total Questions: {quizSummaryResponse.total_questions}
+              </Badge>
+              <Badge
+                variant={quizSummaryResponse.incorrect_count === 0 ? 'emerald' : 'rose'}
+                size="sm"
+              >
+                {quizSummaryResponse.incorrect_count === 0
+                  ? '100% Score — Zero Mistakes'
+                  : `${quizSummaryResponse.incorrect_count} Incorrect`}
+              </Badge>
+            </div>
+          </div>
+
+          {quizSummaryResponse.incorrect_count === 0 ? (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+              <span>Perfect Attempt! All questions answered correctly. No mistake explanations needed.</span>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide block">
+                Concise Mistake Explanations:
+              </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {quizSummaryResponse.mistakes.map((m, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 bg-stone-50 rounded-xl border border-stone-200/80 text-xs space-y-2 flex flex-col justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between font-bold text-stone-900 text-[11px]">
+                        <span className="text-teal-800">{m.topic}</span>
+                        <span className="text-stone-400">ID: {m.question_id}</span>
+                      </div>
+                      <p className="font-medium text-stone-800 leading-snug">
+                        {m.question_text}
+                      </p>
+                      <div className="text-[11px] pt-1 space-y-0.5">
+                        <div className="text-rose-700">
+                          <span className="font-semibold">Your Answer:</span> {m.student_answer}
+                        </div>
+                        <div className="text-emerald-800">
+                          <span className="font-semibold">Correct Answer:</span> {m.correct_answer}
+                        </div>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-lg border border-stone-200 text-stone-700 text-[11px] leading-relaxed mt-2">
+                        <span className="font-bold text-amber-700 block">AI Explanation:</span>
+                        {m.explanation}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const matchedIdx = mistakeList.findIndex(
+                          (item) => item.question.text === m.question_text || item.question.id.includes(m.question_id)
+                        );
+                        if (matchedIdx !== -1) {
+                          handleSelectMistake(matchedIdx);
+                        }
+                      }}
+                      className="mt-2 w-full py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-semibold rounded-lg text-[11px] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-300 fill-amber-300" />
+                      <span>Mode 1 Socratic Deep Dive</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Multiple Mistakes Selector Bar (when reviewing an attempt) */}
