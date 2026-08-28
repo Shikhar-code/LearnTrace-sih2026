@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { intelligenceApi, getApiErrorMessage } from "../../services/api";
-import { getStudentAttempts } from "../../services/attemptStorage";
-import { LearnerFrontendPayload } from "../../types";
+import {
+  intelligenceApi,
+  assessmentApi,
+} from "../../services/api";
+import { buildBaselineCurriculumGraph } from "../../services/curriculumGraph";
+import { LearnerFrontendPayload, AttemptAnalysisInput } from "../../types";
 import {
   KnowledgeGraphView,
   LearningPathStepper,
@@ -64,8 +67,6 @@ export const KnowledgeGraphExplorer: React.FC = () => {
     ? Number(searchParams.get("attempt_id"))
     : null;
 
-  const studentAttempts = useMemo(() => getStudentAttempts(1), []);
-
   const [selectedSubjectIdx, setSelectedSubjectIdx] = useState<number>(0);
   const [frontendData, setFrontendData] =
     useState<LearnerFrontendPayload | null>(null);
@@ -85,48 +86,90 @@ export const KnowledgeGraphExplorer: React.FC = () => {
 
   const activeSubject = SUBJECT_OPTIONS[selectedSubjectIdx];
 
+  // Helper to fetch completed attempts specifically matching the active class and subject
+  const fetchSubjectMatchedAttempts = async (): Promise<AttemptAnalysisInput[]> => {
+    try {
+      const dbAttempts = await assessmentApi.listCompletedAttempts({
+        class_level: activeSubject.classLevel,
+      });
+
+      const targetSubject = activeSubject.subject.toLowerCase();
+      const filtered = dbAttempts.filter((a) => {
+        if (a.subject_name) {
+          return a.subject_name.toLowerCase().includes(targetSubject);
+        }
+        if (a.assessment_title) {
+          return a.assessment_title.toLowerCase().includes(targetSubject);
+        }
+        return false;
+      });
+
+      return filtered.map((a, idx) => ({
+        attempt_id: a.attempt_id,
+        assessment_type:
+          idx === 0 && filtered.length > 1 ? "reassessment" : "diagnostic",
+      }));
+    } catch {
+      return [];
+    }
+  };
+
   const loadGraph = async () => {
     setLoading(true);
     setErrorMessage(null);
     setSelectedTopicForRemediation(null);
     setRemediationData(null);
 
-    const primaryAttemptId = studentAttempts[0]?.attempt_id || 1;
-    const primaryAttemptType =
-      studentAttempts[0]?.assessment_type || "diagnostic";
-
     try {
       if (queryAttemptId) {
-        // Specific quiz attempt analysis
-        const data = await intelligenceApi.getLearnerFrontend(
-          queryAttemptId,
-          "diagnostic",
-          activeSubject.defaultTarget,
-        );
-        setFrontendData(data);
-      } else {
-        // Cumulative student attempts across history
-        const data = await intelligenceApi.getHistoryFrontend(
-          studentAttempts,
-          activeSubject.defaultTarget,
-        );
-        setFrontendData(data);
+        // Specific query attempt requested
+        try {
+          const data = await intelligenceApi.getLearnerFrontend(
+            queryAttemptId,
+            "diagnostic",
+            activeSubject.defaultTarget,
+          );
+          setFrontendData(data);
+          return;
+        } catch (queryErr) {
+          console.warn("Could not load specific query attempt:", queryErr);
+        }
       }
-    } catch {
-      // Graceful fallback to student's primary attempt
-      try {
-        const fallbackData = await intelligenceApi.getLearnerFrontend(
-          primaryAttemptId,
-          primaryAttemptType,
-          activeSubject.defaultTarget,
-        );
-        setFrontendData(fallbackData);
-      } catch (fallbackErr) {
-        setErrorMessage(
-          `Failed to load knowledge graph for ${activeSubject.label}. ${getApiErrorMessage(fallbackErr)}`,
-        );
-        setFrontendData(null);
+
+      // 1. Fetch attempts matching the selected class level & subject
+      const matchingAttempts = await fetchSubjectMatchedAttempts();
+
+      if (matchingAttempts.length > 0) {
+        try {
+          const data = await intelligenceApi.getHistoryFrontend(
+            matchingAttempts,
+            activeSubject.defaultTarget,
+          );
+          setFrontendData(data);
+          return;
+        } catch (apiErr) {
+          console.warn(
+            "Intelligence history analysis failed for subject attempts, falling back to baseline DAG:",
+            apiErr,
+          );
+        }
       }
+
+      // 2. If student has not yet taken a quiz in this subject, generate clean baseline curriculum DAG
+      const baselineData = buildBaselineCurriculumGraph(
+        activeSubject.classLevel,
+        activeSubject.subject,
+        activeSubject.defaultTarget,
+      );
+      setFrontendData(baselineData);
+    } catch (err) {
+      console.warn("Falling back to baseline curriculum graph:", err);
+      const fallbackData = buildBaselineCurriculumGraph(
+        activeSubject.classLevel,
+        activeSubject.subject,
+        activeSubject.defaultTarget,
+      );
+      setFrontendData(fallbackData);
     } finally {
       setLoading(false);
     }
@@ -134,7 +177,7 @@ export const KnowledgeGraphExplorer: React.FC = () => {
 
   useEffect(() => {
     loadGraph();
-  }, [queryAttemptId, selectedSubjectIdx, studentAttempts]);
+  }, [queryAttemptId, selectedSubjectIdx]);
 
   // Handler to fetch and display tailored remediation for any clicked topic
   const handleViewRemediation = async (
@@ -154,39 +197,37 @@ export const KnowledgeGraphExplorer: React.FC = () => {
       }
     }, 40);
 
-    const primaryAttemptId = studentAttempts[0]?.attempt_id || 1;
-    const primaryAttemptType =
-      studentAttempts[0]?.assessment_type || "diagnostic";
-
     try {
-      if (queryAttemptId) {
-        const data = await intelligenceApi.getLearnerFrontend(
-          queryAttemptId,
-          "diagnostic",
-          conceptId,
-        );
-        setRemediationData(data);
-      } else {
-        const data = await intelligenceApi.getHistoryFrontend(
-          studentAttempts,
-          conceptId,
-        );
-        setRemediationData(data);
+      const matchingAttempts = await fetchSubjectMatchedAttempts();
+
+      if (matchingAttempts.length > 0) {
+        try {
+          const data = await intelligenceApi.getHistoryFrontend(
+            matchingAttempts,
+            conceptId,
+          );
+          setRemediationData(data);
+          return;
+        } catch (apiErr) {
+          console.warn("Could not compute remediation via intelligence API:", apiErr);
+        }
       }
+
+      // Baseline remediation for unassessed topic
+      const baselineRemediation = buildBaselineCurriculumGraph(
+        activeSubject.classLevel,
+        activeSubject.subject,
+        conceptId,
+      );
+      setRemediationData(baselineRemediation);
     } catch (err) {
       console.warn("Attempting fallback for concept remediation:", err);
-      try {
-        const fallbackData = await intelligenceApi.getLearnerFrontend(
-          primaryAttemptId,
-          primaryAttemptType,
-          conceptId,
-        );
-        setRemediationData(fallbackData);
-      } catch (fallbackErr) {
-        setRemediationError(
-          `Unable to generate remediation route for "${conceptLabel}". ${getApiErrorMessage(fallbackErr)}`,
-        );
-      }
+      const fallbackRemediation = buildBaselineCurriculumGraph(
+        activeSubject.classLevel,
+        activeSubject.subject,
+        conceptId,
+      );
+      setRemediationData(fallbackRemediation);
     } finally {
       setRemediationLoading(false);
     }
