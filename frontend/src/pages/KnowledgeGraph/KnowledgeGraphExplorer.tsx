@@ -1,9 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import {
-  intelligenceApi,
-  assessmentApi,
-} from "../../services/api";
+import { intelligenceApi, assessmentApi } from "../../services/api";
 import { buildBaselineCurriculumGraph } from "../../services/curriculumGraph";
 import { LearnerFrontendPayload, AttemptAnalysisInput } from "../../types";
 import {
@@ -87,7 +84,9 @@ export const KnowledgeGraphExplorer: React.FC = () => {
   const activeSubject = SUBJECT_OPTIONS[selectedSubjectIdx];
 
   // Helper to fetch completed attempts specifically matching the active class and subject
-  const fetchSubjectMatchedAttempts = async (): Promise<AttemptAnalysisInput[]> => {
+  const fetchSubjectMatchedAttempts = async (): Promise<
+    AttemptAnalysisInput[]
+  > => {
     try {
       const dbAttempts = await assessmentApi.listCompletedAttempts({
         class_level: activeSubject.classLevel,
@@ -209,7 +208,10 @@ export const KnowledgeGraphExplorer: React.FC = () => {
           setRemediationData(data);
           return;
         } catch (apiErr) {
-          console.warn("Could not compute remediation via intelligence API:", apiErr);
+          console.warn(
+            "Could not compute remediation via intelligence API:",
+            apiErr,
+          );
         }
       }
 
